@@ -1,6 +1,6 @@
 # OpioidRCR
 
-Space for the PCORNet Rapid Cycle Research code
+Space for the PCORNet Rapid Cycle Research code (check ou this [toolkit](https://oig.hhs.gov/oei/reports/oei-02-17-00560.pdf)
 ### [Value Sets](/ValueSets)
 * CDC Oral Opioids
 * All Opioids
