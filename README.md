@@ -10,6 +10,7 @@ Space for the PCORNet Rapid Cycle Research code (check ou this [toolkit](https:/
 * [CDC SAS Code](https://www.cdc.gov/drugoverdose/data-files/SAScodetouseMMEconvsnfileSept2017.sas) to modify
 * Crosswalks from CDC NDCs to RXNORM with same MMEs [here]
 * TODO (if we decide): Crosswalks to average MMEs for less granular matches
+* TO DECIDE How to impute MME and days supply when we don't have it (e.g. impute these based on CMS claims data)
 * Table shells matching RX to provider zip code
 * TODO SAS PROC SQL queries
 
