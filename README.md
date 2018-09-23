@@ -7,8 +7,8 @@ Space for the PCORNet Rapid Cycle Research code
 * Risk factors and outcomes- Exclusion criteria
 
 ### Replicating CDC Results
-* CDC SAS Code
-* Crosswalks from CDC NDCs to RXNORM with same MMEs
+* [CDC SAS Code](https://www.cdc.gov/drugoverdose/data-files/SAScodetouseMMEconvsnfileSept2017.sas)
+* Crosswalks from CDC NDCs to RXNORM with same MMEs [here]
 * TODO (if we decide): Crosswalks to average MMEs for less granular matches
 * Table shells matching RX to provider zip code
 * TODO SAS PROC SQL queries
