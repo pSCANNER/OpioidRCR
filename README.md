@@ -14,7 +14,7 @@ Space for the PCORNet Rapid Cycle Research code (check ou this [toolkit](https:/
 * Table shells matching RX to provider zip code
 * TODO SAS PROC SQL queries
 
-### Descriptive Statistics for deteriminants and outcomes from logic model
+### "Ad Hoc Queries" - Descriptive Statistics for deteriminants and outcomes from logic model
 * Crosstabs for value sets over demographic and geographic variables
 * High Dose (see [this SAS code](https://www.oig.hhs.gov/oei/reports/oei-02-17-00560.asp) from HHS - June 2018.)
 
