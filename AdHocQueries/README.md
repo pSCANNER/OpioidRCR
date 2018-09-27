@@ -1,1 +1,1 @@
-##Detailed Specifications and task assignments go here
+Detailed Specifications and task assignments go here
