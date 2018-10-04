@@ -1,6 +1,5 @@
 # OpioidRCR
 [Master Technical Specifications GoogleDoc](https://docs.google.com/document/d/1ODXc4xo6Lqm6f8BPzVo0nrrG1GtHflRlBCxCQNkzMik/edit)
-(check ou this [toolkit])(https://oig.hhs.gov/oei/reports/oei-02-17-00560.pdf)
 ### [Value Sets](/ValueSets)
 * CDC Oral Opioids
 * All Opioids
@@ -11,6 +10,8 @@
 * Review the table shells
 * Crosstabs for value sets over demographic and geographic variables
 * High Dose (see [this SAS code](https://www.oig.hhs.gov/oei/reports/oei-02-17-00560.asp) from HHS - June 2018.)
+* Possibly useful [toolkit from HHS](https://oig.hhs.gov/oei/reports/oei-02-17-00560.pdf)
+
 
 ### Replicating CDC Results
 * [CDC SAS Code](https://www.cdc.gov/drugoverdose/data-files/SAScodetouseMMEconvsnfileSept2017.sas) to modify
