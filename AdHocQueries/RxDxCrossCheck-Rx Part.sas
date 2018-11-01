@@ -1,25 +1,22 @@
 /*1) Edit this section to define the macro parameters;*/
-
-*Values below the TOP_N_DX_BY_FREQ parameter will be used as number of DX codes that will be used;
 %let TOP_N_DX_BY_FREQ =100;
-
-/*4) Edit this section to reflect locations for the libraries/folders for PCORNET Dataand Output folders*/
+/*2) Edit this section to reflect locations for the libraries/folders for PCORNET Data
+   and Output folders*/
 /********** FOLDER CONTAINING INPUT DATA FILES AND CDM DATA ***************************************/
 /* IMPORTANT NOTE: end of path separators are needed;                                               */
 /*   Windows-based platforms:    "\", e.g. "C:\user\sas\" and not "C:\user\sas";                    */
 /*   Unix-based platforms:      "/", e.g."/home/user/sas/" and not "/home/user/sas";                */
 /*                                                                                                  */
 /********** FOLDER CONTAINING INPUT DATA FILES AND CDM DATA ***************************************/;
-
-/*Data in CDM Format*/          libname indata '/schaeffer-a/sch-projects/dua-data-projects/PSCANNER/data/';
-
-/*NDC/ICD9 Codes File Location*/  %LET input=/schhome/users/QiaohongHu/Opioid/input/;	
-								  %LET valueset=NDC-MATCH.csv;
-								  %LET drugname=rxcui_name.csv;/*This is list of raw rx names*/
-								  %LET string=string-to-match.csv;/*This is list of strings that will be used to search*/								
-/*SAS input Files*/              libname input "&input.";
+/*Data in CDM Format*/          libname indata '/schaeffer-a/sch-projects/dua-data-projects/PSCANNER/data/pcornet_08_02_18_date_format_fixed/';
+/*File Location*/  				%LET input=/schhome/users/QiaohongHu/Opioid/input/;	
+								%LET valueset=NDC-MATCH.csv;
+								%LET drugname=rxcui_name.csv;
+								%LET string=string-to-match.csv;
+/********** FOLDER CONTAINING SUMMARY FILES TO BE EXPORTED*/;
 /*CSV Output Files*/              %LET output=/schhome/users/QiaohongHu/Opioid/output/;
 /*SAS Output Files*/              libname output "&output.";
+/*********** FOLDER CONTAINING FINAL DATASETS TO BE KEPT LOCAL**********/;
 /*CSV Output Files*/              %LET local=/schhome/users/QiaohongHu/Opioid/local/;
 /*SAS Output Files*/              libname local "&local.";
 
@@ -29,75 +26,111 @@
 /*                                       End of User Inputs                                          */
 /*---------------------------------------------------------------------------------------------------*/
 
-
-
+/*****************************************************************************************************/
+/**************************** PLEASE DO NOT EDIT CODE BELOW THIS LINE ********************************/
+/*****************************************************************************************************/
 PROC IMPORT OUT=local.valueset
             DATAFILE= "&input&valueset"
             DBMS=CSV REPLACE;
      GETNAMES=YES;
      DATAROW=2;
 RUN;
-PROC IMPORT OUT=local.drugname
-            DATAFILE= "&input&drugname"
-            DBMS=CSV REPLACE;
-     GETNAMES=YES;
-     DATAROW=2;
-RUN;
+
 PROC IMPORT OUT=local.string
             DATAFILE= "&input&string"
             DBMS=CSV REPLACE;
      GETNAMES=YES;
      DATAROW=2;
 RUN;
+
+
+/*************TABLE1:RXCUI Table with frequency of co-occurrence with 100 most common Dx that co-occur with known RXCUI codes************/
+/*1) Clean data set and extract necessary info*/
 proc sql;
 	create table want1 as
-		select patid,rxnorm_cui
+		select patid,rxnorm_cui,raw_rx_med_name,encounterid
 		from indata.prescribing
 		order by rxnorm_cui;
 quit;
-data local.valueset;set local.valueset;if rxcui ne .;run;
+
+data local.valueset;
+set local.valueset;
+if rxcui ne .;
+run;
+
 proc sort data=local.valueset;
 by rxcui;
 run;
+
 
 data want1;
 set want1;
 rxcui=input(rxnorm_cui,8.);
 drop rxnorm_cui;
 run;
+
 proc sort data=want1;
 by rxcui;
 run;
+/*2)Match known OPIOID RXCUI codes to get a list of patients whose prescriptions have OPIOID ---P(RX)*/
 data opioid1;
 merge local.valueset(in=a) want1;
 by rxcui;
 if a;
 if patid ne .;
-keep patid rxcui;
+keep patid rxcui raw_rx_med_name encounterid;
 run;
 
 proc sql;
-	create table rxpt as
-		select distinct patid
-		from opioid1 order by patid;
+	create table opioidrx as
+		select patid,encounterid
+		from opioid1 
+		order by patid,encounterid;
 quit;
 
-
+/*3)Get a list of patient with DX codes from diagnosis table ---P(DX)*/
 proc sql;
 	create table want2 as
-		select patid,dx,raw_dx_type
+		select patid,dx,raw_dx_type,encounterid
 		from indata.diagnosis
 		order by patid;
 quit;
-proc sql outobs=&TOP_N_DX_BY_FREQ;
-    create table dxrx as
-        select count(want2.dx) as cnt, want2.dx
-        from want2,rxpt
-		where want2.patid=rxpt.patid
-        group by want2.dx
-        order by cnt desc;
+/*4)Match OPIOID patient list to get listof 100 most common DX that co-occur with known RXCUI codes ---P(DX|RX)*/
+proc sql;
+    create table dxcount as
+        select count(dx) as fdx,dx
+        from want2
+        group by dx
+        order by fdx desc;
+quit;
+proc sort data=want2;
+by patid encounterid;
+run;
+
+data dxrx1;
+merge want2 opioidrx(in=a);
+by patid encounterid;
+if a;
+run;
+proc sql;
+create table dxrx2 as
+select dxrx1.dx,dxcount.fdx
+from dxrx1,dxcount
+where dxrx1.dx=dxcount.dx;
 quit;
 
+proc sort data=dxrx2 nodupkey;
+by dx;
+run;
+proc sort data=dxrx2;
+by descending fdx;
+run;
+data dxrx;
+set dxrx2(obs=&TOP_N_DX_BY_FREQ);
+run;
+
+
+/*5)Match known DX codes with P(DX) list and get a list of patient from diagnosis table whose prescription have OPIOID ---P(DX|RX)'*/
 proc sort data=want2;
 by dx;
 run;
@@ -112,81 +145,157 @@ by dx;
 if a;
 run;
 
-proc sort data=opioid2 nodupkey;
-by patid dx;
-run;
+/*6)Match back P(DX|RX)' with want1(RXCUI codes list from prescribing table) and delete those who has already existed in value set --- P(RX'|DX|RX) */
+proc sql;
+	create table opioiddx as
+		select patid,encounterid
+		from opioid2 
+		order by patid,encounterid;
+quit;
+
+proc sql;
+    create table rxcount as
+        select count(rxcui) as frx,rxcui
+        from want1
+        group by rxcui;
+quit;
+
 proc sort data=want1;
-by patid;
+by patid encounterid;
+run;
+
+data rxdx1;
+merge want1 opioiddx(in=a);
+by patid encounterid;
+if a;
+if rxcui ne .;
+run;
+proc sql;
+create table rxdx2 as
+select rxdx1.rxcui,rxcount.frx,rxdx1.raw_rx_med_name
+from rxdx1,rxcount
+where rxdx1.rxcui=rxcount.rxcui;
+quit;
+
+proc sort data=rxdx2 nodupkey;
+by rxcui;
 run;
 
 data rxdx;
-merge opioid2(in=a) want1;
-by patid;
-if a;
-drop cnt;
-if rxcui ne .;
-run;
-
-proc sql;
-create table crosscheck as
-select rxcui
-from rxdx
-order by rxcui;
-quit;
-
-data checkresult;
-merge local.valueset (in=a) crosscheck;
+merge rxdx2 local.valueset(in=a);
 by rxcui;
 if a then delete;
-keep rxcui;
 run;
 
+data output.table1;
+set rxdx;
+run;
+
+
+/*************TABLE2:Table with frequency overll (not co-occurring)************/
+/*1) Clean data set and extract necessary info*/
 proc sql;
-	create table local.rxnotinc as
-		select count(rxcui) as cnt,rxcui
-		from checkresult
-		group by rxcui
-		order by cnt desc;
+	create table want1 as
+		select patid,rxnorm_cui,raw_rx_med_name,encounterid
+		from indata.prescribing
+		order by rxnorm_cui;
 quit;
-
-proc sort data=local.rxnotinc;
-by rxcui;
+data want1;
+set want1;
+rxcui=input(rxnorm_cui,8.);
+drop rxnorm_cui;
 run;
-
-proc sort data=local.drugname;
-by rxnorm_cui;
-run;
-data output.rxnotinc;
-merge local.rxnotinc(in=a) local.drugname(rename=(rxnorm_cui=rxcui));
-by rxcui;
-if a;
-run;
-
-%macro missing;
-proc sql noprint;
-select string
-into:string separated by " "
-from local.string;
-quit;
-
-%LET k=1;
-%LET stnm=%SCAN(&string,&k);
-%DO %WHILE ("&stnm" NE "");
 proc sql;
-create table output.&stnm as
-select rxcui,raw_rx_med_name,raw_rx_med_name,cnt,raw_rx_ndc
-from output.rxnotinc
-where upcase(raw_rx_med_name) contains "&stnm";
+	create table want2 as
+		select patid,dx,raw_dx_type,encounterid
+		from indata.diagnosis
+		order by patid;
 quit;
-proc sort data=output.&stnm;
-by descending cnt;
+/*2) Use sql to get frequencies*/
+proc sql;
+    create table rxcount as
+        select count(rxcui) as frx,rxcui,raw_rx_med_name
+        from want1
+        group by rxcui;
+quit;
+proc sql;
+    create table dxcount as
+        select count(dx) as fdx,dx
+        from want2
+        group by dx
+        order by fdx desc;
+quit;
+data output.table2rx;
+set rxcount;
 run;
-%LET k=%EVAL(&K+1);;
-%LET stnm=%SCAN(&string,&k);
-%end;
+data output.table2dx;
+set dxcount;
+run;
+
+/*************TABLE3:inner join Table 1 with Table 2 on RXCUI************/
+proc sql; 
+	create table output.table3 as 
+   select * from output.table1,output.table2rx
+      where table1.rxcui=table2.rxcui
+	order by frx;
+quit;
+/*************TABLE4:search drug names in Table 3 for opioid strings, add a column 0=no match 1=match************/
+
+%macro crosscheck;
+Proc sql noprint;
+      select 'Upcase(raw_rx_med_name) contains '''||strip(Upcase(string))||''''
+      into :strings separated by ' OR '
+      from local.string
+      ;
+
+      create table one as
+      select *
+      from output.table3
+      where &strings;
+Quit;
 %mend;
-%missing;
+%crosscheck;
+data two;
+set one;
+match=1;
+run;
+proc sort data=output.table3 out=table3;
+by rxcui;
+run;
+data output.table4;
+merge two table3;
+by rxcui;
+run;
+data output.table4;
+set output.table4;
+if match ne 1 then match=0;
+run;
+proc sort data=output.table4;
+by descending frx;
+run;
 
-
-/************************************ END OF CODE *********************************************/
-
+PROC EXPORT DATA= output.table1
+            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table1.csv" 
+            DBMS=CSV LABEL REPLACE;
+     PUTNAMES=YES;
+RUN;
+PROC EXPORT DATA= output.table2rx
+            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table2rx.csv" 
+            DBMS=CSV LABEL REPLACE;
+     PUTNAMES=YES;
+RUN;
+PROC EXPORT DATA= output.table2dx
+            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table2dx.csv" 
+            DBMS=CSV LABEL REPLACE;
+     PUTNAMES=YES;
+RUN;
+PROC EXPORT DATA= output.table3
+            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table3.csv" 
+            DBMS=CSV LABEL REPLACE;
+     PUTNAMES=YES;
+RUN;
+PROC EXPORT DATA= output.table4
+            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table4.csv" 
+            DBMS=CSV LABEL REPLACE;
+     PUTNAMES=YES;
+RUN;
