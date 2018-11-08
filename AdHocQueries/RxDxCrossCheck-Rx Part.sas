@@ -9,7 +9,7 @@
 /*                                                                                                  */
 /********** FOLDER CONTAINING INPUT DATA FILES AND CDM DATA ***************************************/;
 /*Data in CDM Format*/          libname indata '';
-/*File Location*/  		%LET input=;	
+/*File Location*/  		%LET input= ' ';	
 								%LET valueset=NDC-MATCH.csv;
 								%LET drugname=rxcui_name.csv;
 								%LET string=string-to-match.csv;
