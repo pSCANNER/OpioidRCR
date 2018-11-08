@@ -8,16 +8,16 @@
 /*   Unix-based platforms:      "/", e.g."/home/user/sas/" and not "/home/user/sas";                */
 /*                                                                                                  */
 /********** FOLDER CONTAINING INPUT DATA FILES AND CDM DATA ***************************************/;
-/*Data in CDM Format*/          libname indata '/schaeffer-a/sch-projects/dua-data-projects/PSCANNER/data/pcornet_08_02_18_date_format_fixed/';
-/*File Location*/  				%LET input=/schhome/users/QiaohongHu/Opioid/input/;	
+/*Data in CDM Format*/          libname indata '';
+/*File Location*/  		%LET input=;	
 								%LET valueset=NDC-MATCH.csv;
 								%LET drugname=rxcui_name.csv;
 								%LET string=string-to-match.csv;
 /********** FOLDER CONTAINING SUMMARY FILES TO BE EXPORTED*/;
-/*CSV Output Files*/              %LET output=/schhome/users/QiaohongHu/Opioid/output/;
+/*CSV Output Files*/              %LET output=;
 /*SAS Output Files*/              libname output "&output.";
 /*********** FOLDER CONTAINING FINAL DATASETS TO BE KEPT LOCAL**********/;
-/*CSV Output Files*/              %LET local=/schhome/users/QiaohongHu/Opioid/local/;
+/*CSV Output Files*/              %LET local=;
 /*SAS Output Files*/              libname local "&local.";
 
 
