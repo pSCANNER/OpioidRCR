@@ -1,6 +1,6 @@
 /*Each patient needs to be assigned a zip code on the basis of most common zip code of the patient?s visit provider.*/
 libname one "/schhome/users/QiaohongHu";
-libname two "/schaeffer-a/sch-projects/dua-data-projects/PSCANNER/data/pcornet_10_12_18_date_format_fixed";
+libname two "/schaeffer-a/data";
 
 proc sql;
 	create table want as
