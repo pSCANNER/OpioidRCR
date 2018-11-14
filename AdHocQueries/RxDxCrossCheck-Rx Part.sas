@@ -1,6 +1,5 @@
-/*1) Edit this section to define the macro parameters;*/
-%let TOP_N_DX_BY_FREQ =100;
-/*2) Edit this section to reflect locations for the libraries/folders for PCORNET Data
+
+/* Edit this section to reflect locations for the libraries/folders for PCORNET Data
    and Output folders*/
 /********** FOLDER CONTAINING INPUT DATA FILES AND CDM DATA ***************************************/
 /* IMPORTANT NOTE: end of path separators are needed;                                               */
@@ -125,6 +124,14 @@ run;
 proc sort data=dxrx2;
 by descending fdx;
 run;
+
+PROC SQL noprint;
+SELECT count(*) into :obs
+FROM dxrx2;
+QUIT;
+
+%let TOP_N_DX_BY_FREQ =%sysevalf(&obs *.8,integer);
+
 data dxrx;
 set dxrx2(obs=&TOP_N_DX_BY_FREQ);
 run;
