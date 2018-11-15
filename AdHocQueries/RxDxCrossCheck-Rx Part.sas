@@ -95,7 +95,7 @@ proc sql;
 		from indata.diagnosis
 		order by patid;
 quit;
-/*4)Match OPIOID patient list to get listof 100 most common DX that co-occur with known RXCUI codes ---P(DX|RX)*/
+/*4)Match OPIOID patient list to get list of 80% most common DX that co-occur with known RXCUI codes ---P(DX|RX)*/
 proc sql;
     create table dxcount as
         select count(dx) as fdx,dx
