@@ -1,6 +1,7 @@
 
 /* Edit this section to reflect locations for the libraries/folders for PCORNET Data
    and Output folders*/
+%LET percent=0.8;  /*The cut off point of co-occur DX codes*/
 /********** FOLDER CONTAINING INPUT DATA FILES AND CDM DATA ***************************************/
 /* IMPORTANT NOTE: end of path separators are needed;                                               */
 /*   Windows-based platforms:    "\", e.g. "C:\user\sas\" and not "C:\user\sas";                    */
@@ -130,7 +131,7 @@ SELECT count(*) into :obs
 FROM dxrx2;
 QUIT;
 
-%let TOP_N_DX_BY_FREQ =%sysevalf(&obs *.8,integer);
+%let TOP_N_DX_BY_FREQ =%sysevalf(&obs *&percent,integer);
 
 data dxrx;
 set dxrx2(obs=&TOP_N_DX_BY_FREQ);
