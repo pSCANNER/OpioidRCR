@@ -283,27 +283,27 @@ by descending frx;
 run;
 
 PROC EXPORT DATA= output.table1
-            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table1.csv" 
+            OUTFILE= "/table1.csv" 
             DBMS=CSV LABEL REPLACE;
      PUTNAMES=YES;
 RUN;
 PROC EXPORT DATA= output.table2rx
-            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table2rx.csv" 
+            OUTFILE= "/table2rx.csv" 
             DBMS=CSV LABEL REPLACE;
      PUTNAMES=YES;
 RUN;
 PROC EXPORT DATA= output.table2dx
-            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table2dx.csv" 
+            OUTFILE= "/table2dx.csv" 
             DBMS=CSV LABEL REPLACE;
      PUTNAMES=YES;
 RUN;
 PROC EXPORT DATA= output.table3
-            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table3.csv" 
+            OUTFILE= "/table3.csv" 
             DBMS=CSV LABEL REPLACE;
      PUTNAMES=YES;
 RUN;
 PROC EXPORT DATA= output.table4
-            OUTFILE= "/schhome/users/QiaohongHu/Opioid/output/table4.csv" 
+            OUTFILE= "/table4.csv" 
             DBMS=CSV LABEL REPLACE;
      PUTNAMES=YES;
 RUN;
