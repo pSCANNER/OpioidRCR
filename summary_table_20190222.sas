@@ -411,20 +411,17 @@ run ;
  %end ;
  %let bmeanstime = %sysevalf ( %sysfunc(datetime()) - &bmeansstart ) ;
  %put Total BetterMeans Macro Time: %sysfunc(putn(&bmeanstime,time9.)) ;
-%mend BETTER_MEANS ;
-%BETTER_MEANS(data=rcr.opioid_flat_file,out=sumtableall_&stratification.,print=N,stts=n nmiss,clss=&stratification);
-DATA rcr.sumtableall_&stratification.;
-set sumtableall_&stratification.;
-keep &stratification name n nmiss;
+%MEND BETTER_MEANS;
+%BETTER_MEANS(data=rcr.opioid_flat_file,out=sumtableall,print=N,stts=n nmiss ,clss=&stratification);
+DATA rcr.sumtableall;
+set sumtableall;
+pctmiss=nmiss/(n+nmiss);
+format pctmiss percent7.2;
+keep &stratification name n nmiss pctmiss;
 run;
-%mend SUMMARY_TABLE1;
-%SUMMARY_TABLE1(facility_location);
-%SUMMARY_TABLE1(race);
-%SUMMARY_TABLE1(sex);
-%SUMMARY_TABLE1(hispanic);
-%SUMMARY_TABLE1(AgeAsOfJuly1);
-%SUMMARY_TABLE1(AGEGRP);
-%SUMMARY_TABLE1(EventYear);
+%MEND SUMMARY_TABLE1;
+%SUMMARY_TABLE1(facility_location race sex /*agegrp hispanic*/ AgeAsOfJuly1 eventyear);
+
 
 /*STD history sub-population*/
 PROC SQL inobs=max;
@@ -435,20 +432,15 @@ PROC SQL inobs=max;
   ;
 QUIT;
 %macro SUMMARY_TABLE2(stratification);
-%BETTER_MEANS(data=rcr.opioid_flat_file_std,out=sumtablestd_&stratification.,print=N,stts=n nmiss,clss=&stratification);
-DATA rcr.sumtablestd_&stratification.;
-set sumtablestd_&stratification.;
-keep &stratification name n nmiss;
+%BETTER_MEANS(data=rcr.opioid_flat_file_std,out=sumtablestd,print=N,stts=n nmiss ,clss=&stratification);
+DATA rcr.sumtablestd;
+set sumtablestd;
+pctmiss=nmiss/(n+nmiss);
+format pctmiss percent7.2;
+keep &stratification name n nmiss pctmiss;
 run;
-%mend SUMMARY_TABLE2;
-%SUMMARY_TABLE2(facility_location);
-%SUMMARY_TABLE2(facility_location);
-%SUMMARY_TABLE2(race);
-%SUMMARY_TABLE2(sex);
-%SUMMARY_TABLE2(hispanic);
-%SUMMARY_TABLE2(AgeAsOfJuly1);
-%SUMMARY_TABLE2(AGEGRP);
-%SUMMARY_TABLE2(EventYear);
+%MEND SUMMARY_TABLE2;
+%SUMMARY_TABLE2(facility_location race sex agegrp hispanic AgeAsOfJuly1 eventyear);
 
 /*Chronic Opioid Use history sub-population*/
 PROC SQL inobs=max;
@@ -459,46 +451,17 @@ PROC SQL inobs=max;
   ;
 QUIT;
 %macro SUMMARY_TABLE3(stratification);
-%BETTER_MEANS(data=rcr.opioid_flat_file_cou,out=sumtablecou_&stratification.,print=N,stts=n nmiss,clss=&stratification);
-DATA rcr.sumtablecou_&stratification.;
-set sumtablecou_&stratification.;
-keep &stratification name n nmiss;
+%BETTER_MEANS(data=rcr.opioid_flat_file_cou,out=sumtablecou,print=N,stts=n nmiss ,clss=&stratification);
+DATA rcr.sumtablecou;
+set sumtablecou;
+pctmiss=nmiss/(n+nmiss);
+format pctmiss percent7.2;
+keep &stratification name n nmiss pctmiss;
 run;
-%mend SUMMARY_TABLE3;
-%SUMMARY_TABLE3(facility_location);
-%SUMMARY_TABLE3(facility_location);
-%SUMMARY_TABLE3(race);
-%SUMMARY_TABLE3(sex);
-%SUMMARY_TABLE3(hispanic);
-%SUMMARY_TABLE3(AgeAsOfJuly1);
-%SUMMARY_TABLE3(AGEGRP);
-%SUMMARY_TABLE3(EventYear);
+%MEND SUMMARY_TABLE3;
+%SUMMARY_TABLE3(facility_location race sex agegrp hispanic AgeAsOfJuly1 eventyear);
 
-
-/*Chronic Opioid Use history sub-population*/
-PROC SQL inobs=max;
-  CREATE TABLE rcr.opioid_flat_file_cou AS
-  SELECT *
-  FROM rcr.opioid_flat_file(where=(ADMIT_DATE IS NOT NULL))
-  WHERE CHRONIC_OPIOID = 1
-  ;
-QUIT;
-%macro SUMMARY_TABLE4(stratification);
-%BETTER_MEANS(data=rcr.opioid_flat_file_cou,out=sumtablecou_&stratification.,print=N,stts=n nmiss,clss=&stratification);
-DATA rcr.sumtablecou_&stratification.;
-set sumtablecou_&stratification.;
-keep &stratification name n nmiss;
-run;
-%mend SUMMARY_TABLE4;
-%SUMMARY_TABLE4(facility_location);
-%SUMMARY_TABLE4(race);
-%SUMMARY_TABLE4(sex);
-%SUMMARY_TABLE4(hispanic);
-%SUMMARY_TABLE4(AgeAsOfJuly1);
-%SUMMARY_TABLE4(AGEGRP);
-%SUMMARY_TABLE4(EventYear);
-
-/*SUD Use history sub-population*/
+/*SUD  history sub-population*/
 PROC SQL inobs=max;
   CREATE TABLE rcr.opioid_flat_file_sud AS
   SELECT *
@@ -506,20 +469,16 @@ PROC SQL inobs=max;
   WHERE SedHypAnx_Use_DO_Any_Prior = 1 AND OUD ne 1 AND Alcohol_Use_DO_Any_Prior ne 1
   ;
 QUIT;
-%macro SUMMARY_TABLE5(stratification);
-%BETTER_MEANS(data=rcr.opioid_flat_file_sud,out=sumtablesud_&stratification.,print=N,stts=n nmiss,clss=&stratification);
-DATA rcr.sumtablesud_&stratification.;
-set sumtablesud_&stratification.;
-keep &stratification name n nmiss;
+%macro SUMMARY_TABLE4(stratification);
+%BETTER_MEANS(data=rcr.opioid_flat_file_sud,out=sumtablesud,print=N,stts=n nmiss ,clss=&stratification);
+DATA rcr.sumtablesud;
+set sumtablesud;
+pctmiss=nmiss/(n+nmiss);
+format pctmiss percent7.2;
+keep &stratification name n nmiss pctmiss;
 run;
-%mend SUMMARY_TABLE5;
-%SUMMARY_TABLE5(facility_location);
-%SUMMARY_TABLE5(race);
-%SUMMARY_TABLE5(sex);
-%SUMMARY_TABLE5(hispanic);
-%SUMMARY_TABLE5(AgeAsOfJuly1);
-%SUMMARY_TABLE5(AGEGRP);
-%SUMMARY_TABLE5(EventYear);
+%MEND SUMMARY_TABLE4;
+%SUMMARY_TABLE4(facility_location race sex agegrp hispanic AgeAsOfJuly1 eventyear);
 
 /*SUD and OUD Use history sub-population*/
 PROC SQL inobs=max;
@@ -530,19 +489,15 @@ PROC SQL inobs=max;
   ;
 QUIT;
 %macro SUMMARY_TABLE6(stratification);
-%BETTER_MEANS(data=rcr.opioid_flat_file_soud,out=sumtablesoud_&stratification.,print=N,stts=n nmiss,clss=&stratification);
-DATA rcr.sumtablesoud_&stratification.;
-set sumtablesoud_&stratification.;
-keep &stratification name n nmiss;
+%BETTER_MEANS(data=rcr.opioid_flat_file_soud,out=sumtablesoud,print=N,stts=n nmiss ,clss=&stratification);
+DATA rcr.sumtablesoud;
+set sumtablesoud;
+pctmiss=nmiss/(n+nmiss);
+format pctmiss percent7.2;
+keep &stratification name n nmiss pctmiss;
 run;
-%mend SUMMARY_TABLE6;
-%SUMMARY_TABLE6(facility_location);
-%SUMMARY_TABLE6(race);
-%SUMMARY_TABLE6(sex);
-%SUMMARY_TABLE6(hispanic);
-%SUMMARY_TABLE6(AgeAsOfJuly1);
-%SUMMARY_TABLE6(AGEGRP);
-%SUMMARY_TABLE6(EventYear);
+%MEND SUMMARY_TABLE5;
+%SUMMARY_TABLE5(facility_location race sex agegrp hispanic AgeAsOfJuly1 eventyear);
 
 /*OUD Use history sub-population*/
 PROC SQL inobs=max;
@@ -552,43 +507,16 @@ PROC SQL inobs=max;
   WHERE OUD = 1
   ;
 QUIT;
-%macro SUMMARY_TABLE7(stratification);
-%BETTER_MEANS(data=rcr.opioid_flat_file_oud,out=sumtableoud_&stratification.,print=N,stts=n nmiss,clss=&stratification);
-DATA rcr.sumtableoud_&stratification.;
-set sumtableoud_&stratification.;
-keep &stratification name n nmiss;
+%macro SUMMARY_TABLE6(stratification);
+%BETTER_MEANS(data=rcr.opioid_flat_file_oud,out=sumtableoud,print=N,stts=n nmiss ,clss=&stratification);
+DATA rcr.sumtableoud;
+set sumtableoud;
+pctmiss=nmiss/(n+nmiss);
+format pctmiss percent7.2;
+keep &stratification name n nmiss pctmiss;
 run;
-%mend SUMMARY_TABLE7;
-%SUMMARY_TABLE7(facility_location);
-%SUMMARY_TABLE7(race);
-%SUMMARY_TABLE7(sex);
-%SUMMARY_TABLE7(hispanic);
-%SUMMARY_TABLE7(AgeAsOfJuly1);
-%SUMMARY_TABLE7(AGEGRP);
-%SUMMARY_TABLE7(EventYear);
-
-/*OUD Use history sub-population*/
-PROC SQL inobs=max;
-  CREATE TABLE rcr.opioid_flat_file_oud AS
-  SELECT *
-  FROM rcr.opioid_flat_file(where=(ADMIT_DATE IS NOT NULL))
-  WHERE OUD = 1
-  ;
-QUIT;
-%macro SUMMARY_TABLE7(stratification);
-%BETTER_MEANS(data=rcr.opioid_flat_file_oud,out=sumtableoud_&stratification.,print=N,stts=n nmiss,clss=&stratification);
-DATA rcr.sumtableoud_&stratification.;
-set sumtableoud_&stratification.;
-keep &stratification name n nmiss;
-run;
-%mend SUMMARY_TABLE7;
-%SUMMARY_TABLE7(facility_location);
-%SUMMARY_TABLE7(race);
-%SUMMARY_TABLE7(sex);
-%SUMMARY_TABLE7(hispanic);
-%SUMMARY_TABLE7(AgeAsOfJuly1);
-%SUMMARY_TABLE7(AGEGRP);
-%SUMMARY_TABLE7(EventYear);
+%MEND SUMMARY_TABLE6;
+%SUMMARY_TABLE6(facility_location race sex agegrp hispanic AgeAsOfJuly1 eventyear);
 
 /*Opioid Exposure sub-population*/
 PROC SQL inobs=max;
@@ -598,20 +526,16 @@ PROC SQL inobs=max;
   WHERE OPIOID_FLAG = 1
   ;
 QUIT;
-%macro SUMMARY_TABLE9(stratification);
-%BETTER_MEANS(data=rcr.opioid_flat_file_oep,out=sumtableoep_&stratification.,print=N,stts=n nmiss,clss=&stratification);
-DATA rcr.sumtableoep_&stratification.;
-set sumtableoep_&stratification.;
-keep &stratification name n nmiss;
+%macro SUMMARY_TABLE7(stratification);
+%BETTER_MEANS(data=rcr.opioid_flat_file_oep,out=sumtableoep,print=N,stts=n nmiss ,clss=&stratification);
+DATA rcr.sumtableoep;
+set sumtableoep;
+pctmiss=nmiss/(n+nmiss);
+format pctmiss percent7.2;
+keep &stratification name n nmiss pctmiss;
 run;
-%mend SUMMARY_TABLE8;
-%SUMMARY_TABLE8(facility_location);
-%SUMMARY_TABLE8(race);
-%SUMMARY_TABLE8(sex);
-%SUMMARY_TABLE8(hispanic);
-%SUMMARY_TABLE8(AgeAsOfJuly1);
-%SUMMARY_TABLE8(AGEGRP);
-%SUMMARY_TABLE8(EventYear);
+%MEND SUMMARY_TABLE7;
+%SUMMARY_TABLE7(facility_location race sex agegrp hispanic AgeAsOfJuly1 eventyear);
 
 
 
