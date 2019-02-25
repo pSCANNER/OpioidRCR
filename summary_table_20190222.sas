@@ -2,7 +2,7 @@
 
 PROC FORMAT;
 VALUE mask
-0- &threshold = ".T";
+0- &threshold = "**********";
 RUN;
 
 /*SUMMARY TABLE - ALL*/
