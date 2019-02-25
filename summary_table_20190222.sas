@@ -1,3 +1,10 @@
+%let threshold=11;
+
+PROC FORMAT;
+VALUE mask
+0- &threshold = ".T";
+RUN;
+
 /*SUMMARY TABLE - ALL*/
 %macro summary(tablenm,sumnm);
 proc contents data=&tablenm out=contents (keep=name) noprint;
@@ -17,9 +24,9 @@ quit;
 proc sql;
 create table sum1_&k as
 select facility_location, race, sex, hispanic, AgeAsOfJuly1 /*I don't have agegrp now, should change to agegrp later*/, eventyear,
-count(*) as n "total number of the observations",
-count(&var) as n_&k "number of the non-missing values in &var",
-nmiss(&var) as nm_&k "number of the missing values in &var"
+count(*) as n "total number of the observations" format=mask.,
+count(&var) as n_&k "number of the non-missing values in &var" format=mask.,
+nmiss(&var) as nm_&k "number of the missing values in &var" format=mask.
 from &tablenm
 group by facility_location, race, sex, hispanic, AgeAsOfJuly1, eventyear
 order by facility_location, race, sex, hispanic, AgeAsOfJuly1, eventyear;
