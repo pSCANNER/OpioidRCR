@@ -1,0 +1,73 @@
+/*{top 1000 dx codes in sub-population defined in summary tables}*/
+/*SUMMARY TABLE - ALL*/
+proc sql noprint outobs=1000;
+create table profilling_dx_all as
+select distinct dx, count(dx) as freq
+from dmlocal.opioid_flat_file as O, indata.diagnosis as D
+where O.patid=D.patid
+group by dx
+order by freq desc;
+quit;
+/*SUMMARY TABLE - STD HISTORY*/
+proc sql noprint outobs=1000;
+create table profilling_dx_std as
+select distinct dx, count(dx) as freq
+from dmlocal.opioid_flat_file_std as O, indata.diagnosis as D
+where O.patid=D.patid
+group by dx
+order by freq desc;
+quit;
+/*SUMMARY TABLE - CHRONIC OPIOID USE HISTORY*/
+proc sql noprint outobs=1000;
+create table profilling_dx_cou as
+select distinct dx, count(dx) as freq
+from dmlocal.opioid_flat_file_cou as O, indata.diagnosis as D
+where O.patid=D.patid
+group by dx
+order by freq desc;
+quit;
+/*SUMMARY TABLE -OVERDOSE HISTORY*/
+proc sql noprint outobs=1000;
+create table profilling_dx_odh as
+select distinct dx, count(dx) as freq
+from dmlocal.opioid_flat_file_odh as O, indata.diagnosis as D
+where O.patid=D.patid
+group by dx
+order by freq desc;
+quit;
+/*SUMMARY TABLE -SUD HISTORY*/
+proc sql noprint outobs=1000;
+create table profilling_dx_sud as
+select distinct dx, count(dx) as freq
+from dmlocal.opioid_flat_file_sud as O, indata.diagnosis as D
+where O.patid=D.patid
+group by dx
+order by freq desc;
+quit;
+/*SUMMARY TABLE -OUD+SUD, NOT AUD*/
+proc sql noprint outobs=1000;
+create table profilling_dx_osud as
+select distinct dx, count(dx) as freq
+from dmlocal.opioid_flat_file_osud as O, indata.diagnosis as D
+where O.patid=D.patid
+group by dx
+order by freq desc;
+quit;
+/*SUMMARY TABLE - OUD */
+proc sql noprint outobs=1000;
+create table profilling_dx_oud as
+select distinct dx, count(dx) as freq
+from dmlocal.opioid_flat_file_oud as O, indata.diagnosis as D
+where O.patid=D.patid
+group by dx
+order by freq desc;
+quit;
+/*SUMMARY TABLE - OPIOID EXPOSURE */
+proc sql noprint outobs=1000;
+create table profilling_dx_oep as
+select distinct dx, count(dx) as freq
+from dmlocal.opioid_flat_file_oep as O, indata.diagnosis as D
+where O.patid=D.patid
+group by dx
+order by freq desc;
+quit;
