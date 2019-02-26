@@ -5,8 +5,9 @@ proc sort data=infolder.mentalhealth;
 by code;
 run;
 data non_mh;
-merge indata.diagnosis infolder.mentalhealth(rename=(code=dx));
+merge indata.diagnosis infolder.mentalhealth(rename=(code=dx) in=a);
 by dx;
+if a then delte;
 run;
 
 /*{top 1000 non-mental-health dx codes in sub-population defined in summary tables}*/
