@@ -7,7 +7,8 @@ run;
 data non_mh;
 merge indata.diagnosis infolder.mentalhealth(rename=(code=dx) in=a);
 by dx;
-if a then delte;
+if a then delete;
+keep patid dx;
 run;
 
 /*{top 1000 non-mental-health dx codes in sub-population defined in summary tables}*/
