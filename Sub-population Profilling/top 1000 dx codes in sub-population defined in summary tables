@@ -1,5 +1,5 @@
 /*{top 1000 dx codes in sub-population defined in summary tables}*/
-/*SUMMARY TABLE - ALL*/
+/*Profilling TABLE - ALL*/
 proc sql noprint outobs=1000;
 create table profilling_dx_all as
 select distinct dx, count(dx) as freq
@@ -8,7 +8,7 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
-/*SUMMARY TABLE - STD HISTORY*/
+/*Profilling TABLE - STD HISTORY*/
 proc sql noprint outobs=1000;
 create table profilling_dx_std as
 select distinct dx, count(dx) as freq
@@ -17,7 +17,7 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
-/*SUMMARY TABLE - CHRONIC OPIOID USE HISTORY*/
+/*Profilling TABLE - CHRONIC OPIOID USE HISTORY*/
 proc sql noprint outobs=1000;
 create table profilling_dx_cou as
 select distinct dx, count(dx) as freq
@@ -26,7 +26,7 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
-/*SUMMARY TABLE -OVERDOSE HISTORY*/
+/*Profilling TABLE -OVERDOSE HISTORY*/
 proc sql noprint outobs=1000;
 create table profilling_dx_odh as
 select distinct dx, count(dx) as freq
@@ -35,7 +35,7 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
-/*SUMMARY TABLE -SUD HISTORY*/
+/*Profilling TABLE -SUD HISTORY*/
 proc sql noprint outobs=1000;
 create table profilling_dx_sud as
 select distinct dx, count(dx) as freq
@@ -44,7 +44,7 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
-/*SUMMARY TABLE -OUD+SUD, NOT AUD*/
+/*Profilling TABLE -OUD+SUD, NOT AUD*/
 proc sql noprint outobs=1000;
 create table profilling_dx_osud as
 select distinct dx, count(dx) as freq
@@ -53,7 +53,7 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
-/*SUMMARY TABLE - OUD */
+/*Profilling TABLE - OUD */
 proc sql noprint outobs=1000;
 create table profilling_dx_oud as
 select distinct dx, count(dx) as freq
@@ -62,7 +62,7 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
-/*SUMMARY TABLE - OPIOID EXPOSURE */
+/*Profilling TABLE - OPIOID EXPOSURE */
 proc sql noprint outobs=1000;
 create table profilling_dx_oep as
 select distinct dx, count(dx) as freq
