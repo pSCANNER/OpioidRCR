@@ -1,3 +1,4 @@
+%LET threshold=11;
 proc sort data=indata.diagnosis;
 by dx;
 run;
@@ -21,6 +22,10 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
+data profilling_nomh_dx_all;
+set profilling_nomh_dx_all;
+if 0<freq<&threshold then freq=.t;
+run;
 /*Profilling TABLE - STD HISTORY*/
 proc sql noprint outobs=1000;
 create table profilling_non_mh_dx_std as
@@ -30,6 +35,10 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
+data profilling_nomh_dx_std;
+set profilling_nomh_dx_std;
+if 0<freq<&threshold then freq=.t;
+run;
 /*Profilling TABLE - CHRONIC OPIOID USE HISTORY*/
 proc sql noprint outobs=1000;
 create table profilling_non_mh_dx_cou as
@@ -39,6 +48,10 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
+data profilling_nomh_dx_cou;
+set profilling_nomh_dx_cou;
+if 0<freq<&threshold then freq=.t;
+run;
 /*Profilling TABLE -OVERDOSE HISTORY*/
 proc sql noprint outobs=1000;
 create table profilling_non_mh_dx_odh as
@@ -48,6 +61,10 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
+data profilling_nomh_dx_odh;
+set profilling_nomh_dx_odh;
+if 0<freq<&threshold then freq=.t;
+run;
 /*Profilling TABLE -SUD HISTORY*/
 proc sql noprint outobs=1000;
 create table profilling_non_mh_dx_sud as
@@ -57,6 +74,10 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
+data profilling_nomh_dx_sud;
+set profilling_nomh_dx_sud;
+if 0<freq<&threshold then freq=.t;
+run;
 /*Profilling TABLE -OUD+SUD, NOT AUD*/
 proc sql noprint outobs=1000;
 create table profilling_non_mh_dx_osud as
@@ -66,6 +87,10 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
+data profilling_nomh_dx_osud;
+set profilling_nomh_dx_osud;
+if 0<freq<&threshold then freq=.t;
+run;
 /*Profilling TABLE - OUD */
 proc sql noprint outobs=1000;
 create table profilling_non_mh_dx_oud as
@@ -75,6 +100,10 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
+data profilling_nomh_dx_oud;
+set profilling_nomh_dx_oud;
+if 0<freq<&threshold then freq=.t;
+run;
 /*Profilling TABLE - OPIOID EXPOSURE */
 proc sql noprint outobs=1000;
 create table profilling_non_mh_dx_oep as
@@ -84,3 +113,7 @@ where O.patid=D.patid
 group by dx
 order by freq desc;
 quit;
+data profilling_nomh_dx_oep;
+set profilling_nomh_dx_oep;
+if 0<freq<&threshold then freq=.t;
+run;
