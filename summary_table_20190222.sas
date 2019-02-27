@@ -5,6 +5,9 @@ VALUE mask
 0- &threshold = "**********";
 RUN;
 
+%let threshold=11;
+
+
 /*SUMMARY TABLE - ALL*/
 %macro summary(tablenm,sumnm);
 proc contents data=&tablenm out=contents (keep=name) noprint;
@@ -22,28 +25,33 @@ quit;
 %do %while ("&var" NE "");
 
 proc sql;
-create table sum1_&k as
+create table sum_&k as
 select facility_location, race, sex, hispanic, AgeAsOfJuly1 /*I don't have agegrp now, should change to agegrp later*/, eventyear,
-count(*) as n "total number of the observations" format=mask.,
-count(&var) as n_&k "number of the non-missing values in &var" format=mask.,
-nmiss(&var) as nm_&k "number of the missing values in &var" format=mask.
+count(*) as n "total number of the observations",
+count(&var) as n_&k "number of the non-missing values in &var" ,
+nmiss(&var) as nm_&k "number of the missing values in &var" 
 from &tablenm
 group by facility_location, race, sex, hispanic, AgeAsOfJuly1, eventyear
 order by facility_location, race, sex, hispanic, AgeAsOfJuly1, eventyear;
 quit;
 
+data sum_&k;
+set sum_&k;
+if 0<n<&threshold then n=.t;
+if 0<n_&k<&threshold then n_&k=.t;
+if 0<nm_&k<&threshold then nm_&k=.t;
 %LET k=%EVAL(&k+1);
 %LET var=%SCAN(&varlist,&k);
 %end;
 %LET k=%EVAL(&k-1);
 data &sumnm;
-merge sum1_1-sum1_&k;
+merge sum_1-sum_&k;
 by facility_location race sex hispanic AgeAsOfJuly1 eventyear;
 run;
 
 %mend summary(tablenm,sumnm);
 
-%summary(opioid_flat_file,sum_all);
+%summary(dmlocal.opioid_flat_file,three.sum_all);
 
 /*SUMMARY TABLE - STD HISTORY*/
 PROC SQL NOPRINT;
