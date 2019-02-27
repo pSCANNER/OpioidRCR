@@ -1,9 +1,4 @@
-%let threshold=11;
 
-PROC FORMAT;
-VALUE mask
-0- &threshold = "**********";
-RUN;
 
 %let threshold=11;
 
