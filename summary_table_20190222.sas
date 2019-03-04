@@ -117,6 +117,18 @@ QUIT;
 
 %summary(opioid_flat_file_oud,sum_oud);
 
+/*SUMMARY TABLE - AUD */
+
+PROC SQL NOPRINT;
+  CREATE TABLE opioid_flat_file_aud AS
+  SELECT *
+   FROM opioid_flat_file(where=(ADMIT_DATE IS NOT NULL))
+  WHERE  Alcohol_Use_DO_Any_Prior  = 1 
+  ;
+QUIT;
+
+%summary(opioid_flat_file_aud,sum_aud);
+
 /*SUMMARY TABLE - OPIOID EXPOSURE */
 
 PROC SQL NOPRINT;
