@@ -100,6 +100,19 @@ data profilling_mhprim_dx_oud;
 set profilling_mhprim_dx_oud;
 if 0<freq<&threshold then freq=.t;
 run;
+/*Profilling TABLE - AUD */
+proc sql noprint;
+create table profilling_mhprim_dx_aud as
+select distinct dx, count(dx) as freq
+from dmlocal.opioid_flat_file_aud as O, mhprimary as D
+where O.patid=D.patid
+group by dx
+order by freq desc;
+quit;
+data profilling_mhprim_dx_aud;
+set profilling_mhprim_dx_aud;
+if 0<freq<&threshold then freq=.t;
+run;
 /*Profilling TABLE - OPIOID EXPOSURE */
 proc sql noprint;
 create table profilling_mhprim_dx_oep as
