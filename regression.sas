@@ -1,7 +1,7 @@
 /*Regression 1: Adjusted risk of OUD(Y) in patients with opioid exposure(X)*/
 proc logistic data=opioid_flat_file;
-	class facility_location race sex hispanic agegrp1 eventyear;
-	model oud=opioid_flag facility_location race sex hispanic agegrp1 eventyear;
+	class race sex hispanic agegrp1 eventyear;
+	model oud=opioid_flag race sex hispanic agegrp1 eventyear;
 run;
 
 /*Regression 2: Guideline adherence - mixed effects regression*/
@@ -12,6 +12,12 @@ proc glimmix data=opioid_flat_file;
 run;
 
 /*Regression 3: Predictors of Opioid Exposure Outcomes*/
+proc phreg data=opioid_flat_file;
+	class race sex hispanic agegrp1 eventyear;
+	model lookback_before_index_opioid*opioid_flag =race sex hispanic agegrp1 eventyear Alcohol_Use_DO_Any_Prior 
+	Substance_Use_DO_Any_Prior Opioid_Use_DO_Any_Prior Cannabis_Use_DO_Any_PriorCannabis_Use_DO_Any_Prior Cocaine_Use_DO_Any_Prior 
+	Hallucinogen_Use_DO_Any_Prior Inhalant_Use_DO_Any_Prior Other_Stim_Use_DO_Any_Prior SedHypAnx_Use_DO_Any_Prior;
+run;
 
 /*Regression 4: Predictors of Opioid Exposure Outcomes - Neonatal Abstinence Syndrome (current status 0.06% incidence)*/
 
