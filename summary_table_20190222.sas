@@ -61,7 +61,7 @@ PROC SQL NOPRINT;
   CREATE TABLE opioid_flat_file_std AS
   SELECT *
   FROM opioid_flat_file_exc_cancer
-  WHERE ADMIT_DATE IS NOT NULL AND ANY_STD_POST=1
+  WHERE ADMIT_DATE IS NOT NULL AND ANY_STD_Year_Prior=1
   ;
 QUIT;
 
@@ -71,8 +71,8 @@ QUIT;
 PROC SQL NOPRINT;
   CREATE TABLE opioid_flat_file_cou AS
   SELECT *
-  FROM opioid_flat_file
-  WHERE ADMIT_DATE IS NOT NULL AND CHRONIC_OPIOID = 1
+  FROM opioid_flat_file_exc_cancer
+  WHERE ADMIT_DATE IS NOT NULL AND CHRONIC_OPIOID_CURRENT_PRIOR = 1
   ;
 QUIT;
 
@@ -82,7 +82,7 @@ QUIT;
 PROC SQL NOPRINT;
   CREATE TABLE opioid_flat_file_odh AS
   SELECT *
-  FROM opioid_flat_file
+  FROM opioid_flat_file_exc_cancer
   WHERE ADMIT_DATE IS NOT NULL AND PAST_OD = 1
   ;
 QUIT;
@@ -93,8 +93,8 @@ QUIT;
 PROC SQL NOPRINT;
   CREATE TABLE opioid_flat_file_sud AS
   SELECT *
-   FROM opioid_flat_file(where=(ADMIT_DATE IS NOT NULL))
-  WHERE SedHypAnx_Use_DO_Any_Prior = 1 AND Opioid_Use_DO_Any_Prior ne 1 AND Alcohol_Use_DO_Any_Prior ne 1
+   FROM opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
+  WHERE Substance_Use_DO_Any_Prior = 1 AND Opioid_Use_DO_Any_Prior ne 1 AND Alcohol_Use_DO_Any_Prior ne 1
   ;
 QUIT;
 
@@ -105,8 +105,8 @@ QUIT;
 PROC SQL NOPRINT;
   CREATE TABLE opioid_flat_file_osud AS
   SELECT *
-   FROM opioid_flat_file(where=(ADMIT_DATE IS NOT NULL))
-  WHERE SedHypAnx_Use_DO_Any_Prior = 1 AND Opioid_Use_DO_Any_Prior = 1 AND Alcohol_Use_DO_Any_Prior ne 1
+   FROM opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
+  WHERE Substance_Use_DO_Any_Prior  = 1 AND Opioid_Use_DO_Any_Prior = 1 AND Alcohol_Use_DO_Any_Prior ne 1
   ;
 QUIT;
 
@@ -118,7 +118,7 @@ QUIT;
 PROC SQL NOPRINT;
   CREATE TABLE opioid_flat_file_oud AS
   SELECT *
-   FROM opioid_flat_file(where=(ADMIT_DATE IS NOT NULL))
+   FROM opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
   WHERE  Opioid_Use_DO_Any_Prior = 1 
   ;
 QUIT;
@@ -130,7 +130,7 @@ QUIT;
 PROC SQL NOPRINT;
   CREATE TABLE opioid_flat_file_aud AS
   SELECT *
-   FROM opioid_flat_file(where=(ADMIT_DATE IS NOT NULL))
+   FROM opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
   WHERE  Alcohol_Use_DO_Any_Prior  = 1 
   ;
 QUIT;
@@ -142,9 +142,15 @@ QUIT;
 PROC SQL NOPRINT;
   CREATE TABLE opioid_flat_file_oep AS
   SELECT *
-   FROM opioid_flat_file(where=(ADMIT_DATE IS NOT NULL))
+   FROM opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
   WHERE  Opioid_flag = 1 
   ;
 QUIT;
 
 %summary(opioid_flat_file_oep,sum_opioid_exposure);
+
+
+%mend prescriber_summary(tablenm,sumnm);
+
+%prescriber_summary(opioid_flat_file_exc_cancer,pre_sum_all_exc_cancer);
+
