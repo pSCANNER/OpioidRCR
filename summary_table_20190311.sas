@@ -46,7 +46,7 @@ run;
 
 %mend summary(tablenm,sumnm);
 
-%summary(dmlocal.opioid_flat_file,three.sum_all);
+%summary(dmlocal.opioid_flat_file,sum_all);
 
 /*SUMMARY TABLE - ALL NO CANCER*/
 data opioid_flat_file_exc_cancer;
