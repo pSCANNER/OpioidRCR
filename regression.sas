@@ -24,7 +24,7 @@ proc phreg data=opioid_flat_file_exc_cancer;
 	class race sex hispanic agegrp1 eventyear;
 	model lookback_before_index_opioid*opioid_flag(0) = race sex hispanic agegrp1 eventyear Alcohol_Use_DO_Any_Prior 
 	Substance_Use_DO_Any_Prior Opioid_Use_DO_Any_Prior Cannabis_Use_DO_Any_Prior Cocaine_Use_DO_Any_Prior 
-	Hallucinogen_Use_DO_Any_Prior Inhalant_Use_DO_Any_Prior Other_Stim_Use_DO_Any_Prior SedHypAnx_Use_DO_Any_Prior;
+	Hallucinogen_Use_DO_Any_Prior Inhalant_Use_DO_Any_Prior Other_Stim_Use_DO_Any_Prior SedHypAnx_Use_DO_Any_Prior / selection=stepwise;
 run;
 
 /*Regression 4: Predictors of Opioid Exposure Outcomes - Neonatal Abstinence Syndrome (current status 0.06% incidence)*/
@@ -32,7 +32,7 @@ run;
 /*Regression 5: Predictors of chronic opioid use*/
 proc phreg data=opioid_flat_file_exc_cancer;
 class race sex hispanic agegrp1 eventyear;
-model CHRONIC_OPIOID_DATE*chronic_opioid(0) = race sex hispanic agegrp1 eventyear;
+model CHRONIC_OPIOID_DATE*chronic_opioid(0) = race sex hispanic agegrp1 eventyear / selection=stepwise;
 run;
 
 /*Regression 6: Effects of Opioid and other Sched drugs on deaths*/
@@ -58,37 +58,6 @@ run;
 /*What IV should be included in this model?*/
 
 
-/*------------Other models----------------------*/
-/*Adjusted risk of overdose in patients with opioid-inclusive SUD diagnoses.*/
-proc logistic data=opioid_flat_file;
-class facility_location race sex hispanic agegrp1 eventyear;
-model past_od=Opioid_Use_DO_Any_Prior facility_location race sex hispanic agegrp1 eventyear;
-run;
 
 
-
-/*Adjusted ED and Inpatient utilization in patients with opioid exposure. */
-proc logistic data=opioid_flat_file;
-class race sex hispanic agegrp1 eventyear;
-model ed_ip_yr=opioid_flag facility_location race sex hispanic agegrp1 eventyear;
-run;
-
-/*Adjusted ED and Inpatient utilization in patients with opioid-inclusive SUD diagnoses. */
-proc logistic data=opioid_flat_file;
-class race sex hispanic agegrp1 eventyear;
-model ed_ip_yr=Opioid_Use_DO_Any_Prior facility_location race sex hispanic agegrp1 eventyear;
-run;
-
-/*Adjusted ED and Inpatient utilization in patients with opioid overdose. */
-proc logistic data=opioid_flat_file;
-class race sex hispanic agegrp1 eventyear;
-model ed_ip_yr=past_od facility_location race sex hispanic agegrp1 eventyear;
-run;
-
-
-/*Predictors of chronic opioid use*/
-proc logistic data=opioid_flat_file;
-class facility_location race sex hispanic agegrp1 eventyear;
-model CHRONIC_OPIOID=opioid_flag facility_location race sex hispanic agegrp1 eventyear;
-run;
 
