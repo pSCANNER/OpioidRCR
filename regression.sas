@@ -52,10 +52,10 @@ model fatal_overdose=opioid_prescription race sex hispanic agegrp1 eventyear;
 run;
 
 /*Regression 10: Adjusted odds of smoking*/
-/*What IV should be included in this model?*/
-
-/*Regression 11: Adjusted odds of suicide*/
-/*What IV should be included in this model?*/
+proc logistic data=opioid_flat_file_exc_cancer;
+	class race sex hispanic agegrp1 eventyear;
+	model smoking=opioid_flag race sex hispanic agegrp1 eventyear;
+run;
 
 
 
