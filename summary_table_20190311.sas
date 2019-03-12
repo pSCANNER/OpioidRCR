@@ -83,7 +83,7 @@ PROC SQL NOPRINT;
   CREATE TABLE opioid_flat_file_odh AS
   SELECT *
   FROM opioid_flat_file_exc_cancer
-  WHERE ADMIT_DATE IS NOT NULL AND PAST_OD = 1
+  WHERE ADMIT_DATE IS NOT NULL AND OD_PRE = 1
   ;
 QUIT;
 
