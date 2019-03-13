@@ -13,10 +13,11 @@ proc logistic data=opioid_flat_file;
 run;
 
 /*Regression 2: Guideline adherence - mixed effects regression*/
-proc glimmix data=opioid_flat_file;
+proc glimmix data=opioid_flat_file_exc_cancer;
 	class race sex hispanic agegrp1 eventyear;
 	model opioid_flag=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear oud MH_Dx_Pri_Any_Prior;
 	random intercept / subject=Cancer_AnyEncount_Dx_Year_Prior;
+	where Cancer_AnyEncount_Dx_Year_Prior=0; 
 run;
 
 /*Regression 3: Predictors of Opioid Exposure Outcomes*/
