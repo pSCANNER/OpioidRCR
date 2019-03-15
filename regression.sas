@@ -62,9 +62,21 @@ proc logistic data=dmlocal.opioid_flat_model_exc_cancer;
 run;
 
 /*Regression 2: Guideline adherence - mixed effects regression*/
-proc glimmix data=dmlocal.opioid_flat_model_exc_cancer;
+proc sql noprint;
+create table mixedmodel as
+select*,sum(opioid_any_prior) as sum, count(*) as cnt
+from dmlocal.opioid_flat_model_exc_cancer
+group by providerid,eventyear;
+quit;
+
+data dmlocal.mixedmodel;
+set mixedmodel;
+OPIOID_RX_RATE=sum/cnt;
+drop sum cnt;
+run;
+proc glimmix data=dmlocal.mixedmodel;
 	class race sex hispanic agegrp1 eventyear PROVIDERID;
-	model opioid_flag=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear Opioid_Use_DO_Any_Prior MH_Dx_Pri_Any_Prior /dist=bin link=logit;
+	model OPIOID_RX_RATE=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear Opioid_Use_DO_Any_Prior MH_Dx_Pri_Any_Prior/solution; 
 	random intercept / subject=PROVIDERID;
 	where Cancer_AnyEncount_Dx_Year_Prior=0; 
 run;
