@@ -55,6 +55,7 @@ run;
 /*Regression 8: Adjusted risk of overdose*/
 proc logistic data=opioid_flat_file_exc_cancer;
 	class  race sex hispanic agegrp1 eventyear;
+	/* WE MADE A MISTAKE, THIS SHOULD BE OD_POST */
 	model od_pre=opioid_prescription  race sex hispanic agegrp1 eventyear;
 run;
 
