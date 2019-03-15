@@ -1,46 +1,71 @@
 
 /***************************************************************************************************/
 /**!!!! For all regressions when the PATIENT is the unit of analysis you must pick only ONE year */
-/*The logic here is choosing the most recent opioid exposure record, if one doesn't have opioid exposure record, then choose the most recent one.*/
+/*The logic here is choosing the first opioid exposure record, if one doesn't have opioid exposure record, then choose the most recent one.*/
 /***************************************************************************************************/
-proc sort data=dmlocal.opioid_flat_file out=dmlocal.opioid_flat_model;
-by patid opioid_flag  indexdate;
+proc sort data=dmlocal.opioid_flat_file;
+by encounterid;
 run;
+proc sort data=indata.encounter;
+by encounterid;
+run;
+data dmlocal.opioid_flat_file;
+merge indata.encounter(keep=encounterid providerid) dmlocal.opioid_flat_file(in=a);
+by encounterid;
+if a;
+run;
+data dmlocal.opioid_flat_file_exc_cancer;
+set dmlocal.opioid_flat_file;
+where Cancer_Inpt_Dx_Year_Prior=0 and CANCER_PROC_FLAG=0;
+run;
+proc sort data=dmlocal.opioid_flat_file;
+by patid eventyear;
+run;
+
+data opioid_flat_model;
+set dmlocal.opioid_flat_file; 
+by patid;
+retain count 0;
+if first.patid then count=0;
+if opioid_flag=1 then count=1;
+run;
+data opioid_flat_model;
+set opioid_flat_model;
+retain opioid_any_prior;
+by patid;
+if first.patid then opioid_any_prior=0;
+opioid_any_prior+count;
+run;
+
+proc sort data=opioid_flat_model out=dmlocal.opioid_flat_model;
+by patid descending opioid_any_prior descending eventyear;
+where opioid_any_prior in (0,1);
+run;
+
 data dmlocal.opioid_flat_model;
 set dmlocal.opioid_flat_model;
 by patid;
 if first.patid;
+drop count;
 run;
 
-proc sort data=dmlocal.opioid_flat_file_exc_cancer out=dmlocal.opioid_flat_model_exc_cancer;
-by patid opioid_flag indexdate;
-run;
 data dmlocal.opioid_flat_model_exc_cancer;
-set dmlocal.opioid_flat_model_exc_cancer;
-by patid;
-if first.patid;
+set dmlocal.opioid_flat_model;
+where Cancer_Inpt_Dx_Year_Prior=0 and CANCER_PROC_FLAG=0;
 run;
 
-
-/*Regression1a: Adjusted effect of exposure on OUDs (cancer excluded)*/
+/*Regression1: Adjusted effect of exposure on OUDs (cancer excluded)*/
 proc logistic data=dmlocal.opioid_flat_model_exc_cancer;
 	class race sex hispanic agegrp1 eventyear;
-	model Opioid_Use_DO_Any_Prior =opioid_flag race sex hispanic agegrp1 eventyear;
+	model Post_Rx_Opioid_Use_DO_indicator =opioid_flag race sex hispanic agegrp1 eventyear;
 	where DISPENSE_DATE ne .;
-run;
-
-/*Regression1b: Adjusted effect of exposure on OUDs (cancer only)*/
-proc logistic data=dmlocal.opioid_flat_model;
-	class race sex hispanic agegrp1 eventyear;
-	model Opioid_Use_DO_Any_Prior =opioid_flag race sex hispanic agegrp1 eventyear;
-	where Cancer_Inpt_Dx_Year_Prior=1 OR CANCER_PROC_FLAG=1;
 run;
 
 /*Regression 2: Guideline adherence - mixed effects regression*/
 proc glimmix data=dmlocal.opioid_flat_model_exc_cancer;
-	class race sex hispanic agegrp1 eventyear RX_PROVIDERID;
+	class race sex hispanic agegrp1 eventyear PROVIDERID;
 	model opioid_flag=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear Opioid_Use_DO_Any_Prior MH_Dx_Pri_Any_Prior /dist=bin link=logit;
-	random intercept / subject=RX_PROVIDERID;
+	random intercept / subject=PROVIDERID;
 	where Cancer_AnyEncount_Dx_Year_Prior=0; 
 run;
 
