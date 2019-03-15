@@ -13,7 +13,7 @@ if first.patid;
 run;
 
 proc sort data=dmlocal.opioid_flat_file_exc_cancer out=dmlocal.opioid_flat_model_exc_cancer;
-by patid descending opioid_flag descending indexdate;
+by patid opioid_flag indexdate;
 run;
 data dmlocal.opioid_flat_model_exc_cancer;
 set dmlocal.opioid_flat_model_exc_cancer;
