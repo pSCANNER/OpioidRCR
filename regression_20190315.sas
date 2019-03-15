@@ -7,15 +7,15 @@ ods pdf style=style1 file="&DRNOC./Opioid_RCR_report.pdf"  startpage=no style=jo
 proc printto log="&DRNOC.Opioid_RCR.log"; run;
 %put Turning log capturing back on;
 
-data reg1a;
+data reg1;
   set DMLocal.opioid_flat_file_exc_cancer;
   where Opioid_Use_DO_Any_Prior=0 AND DISPENSE_DATE ne .;
 run;
 
-title "Regression 1a: Adjusted risk of OUD in patients with opioid exposure - Cancer Excluded.";
-proc logistic data=reg1a out=DRNOC.reg1a_oud_no_cancer;
+title "Regression 1: Adjusted risk of OUD in patients with opioid exposure - Cancer Excluded.";
+proc logistic data=reg1 out=DRNOC.reg1_oud_no_cancer;
   class race sex hispanic AGEGRP1 eventyear;
-  model Opioid_Use_DO_Post_Date=opioid_flag race sex hispanic AGEGRP1 eventyear; 
+  model Post_Rx_Opioid_Use_DO_indicator=opioid_flag race sex hispanic AGEGRP1 eventyear; 
   ods select ModelInfo ConvergenceStatus FitStatistics GlobalTests ModelANOVA ParameterEstimates OddsRatios Association;
 run;
 
