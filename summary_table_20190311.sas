@@ -149,8 +149,63 @@ QUIT;
 
 %summary(opioid_flat_file_oep,sum_opioid_exposure);
 
+/*SUMMARY TABLE - PROVIDER LEVEL*/
 
-%mend prescriber_summary(tablenm,sumnm);
 
-%prescriber_summary(opioid_flat_file_exc_cancer,pre_sum_all_exc_cancer);
+proc sql noprint;
+create table mixedmodel as
+select*,sum(opioid_any_prior) as sum, count(*) as cnt
+from dmlocal.opioid_flat_model_exc_cancer
+group by providerid,eventyear;
+quit;
+
+data dmlocal.mixedmodel;
+set mixedmodel;
+OPIOID_RX_RATE=sum/cnt;
+drop sum cnt;
+run;
+
+%macro providersummary(tablenm,sumnm);
+proc contents data=&tablenm out=contents (keep=name) noprint;
+run;
+
+proc sql noprint;
+select name
+into: varlist separated by " "
+from contents
+where name not in ("facility_location","race","sex","hispanic","AGEGRP1","eventyear","PROVIDERID");
+quit;
+
+%let k=1;
+%let var=%scan(&varlist,&k);
+%do %while ("&var" NE "");
+
+proc sql;
+create table sum_&k as
+select facility_location, race, sex, hispanic, agegrp1, eventyear,providerid
+count(*) as n "total number of the observations",
+count(&var) as n_&k "number of the non-missing values in &var" ,
+nmiss(&var) as nm_&k "number of the missing values in &var" 
+from &tablenm
+group by facility_location, race, sex, hispanic, agegrp1, eventyear, providerid
+order by facility_location, race, sex, hispanic, agegrp1, eventyear, providerid;
+quit;
+
+data sum_&k;
+set sum_&k;
+if 0<n<&threshold then n=.t;
+if 0<n_&k<&threshold then n_&k=.t;
+if 0<nm_&k<&threshold then nm_&k=.t;
+%LET k=%EVAL(&k+1);
+%LET var=%SCAN(&varlist,&k);
+%end;
+%LET k=%EVAL(&k-1);
+data &sumnm;
+merge sum_1-sum_&k;
+by facility_location race sex hispanic agegrp1 eventyear providerid;
+run;
+
+%mend providersummary(tablenm,sumnm);
+
+%providersummary(dmlocal.mixedmodel,sum_provider);
 
