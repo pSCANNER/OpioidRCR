@@ -4,7 +4,7 @@
 /*The logic here is choosing the most recent opioid exposure record, if one doesn't have opioid exposure record, then choose the most recent one.*/
 /***************************************************************************************************/
 proc sort data=dmlocal.opioid_flat_file out=dmlocal.opioid_flat_model;
-by patid descending opioid_flag descending indexdate;
+by patid opioid_flag  indexdate;
 run;
 data dmlocal.opioid_flat_model;
 set dmlocal.opioid_flat_model;
