@@ -23,7 +23,7 @@ proc glimmix data=opioid_flat_file_exc_cancer;
 	class race sex hispanic agegrp1 eventyear;
 	model opioid_flag=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear oud MH_Dx_Pri_Any_Prior;
 	/** random intercept should be provided ID **/	
-	random intercept / subject=Cancer_AnyEncount_Dx_Year_Prior;
+	random intercept / subject=RX_PROVIDERID;
 	where Cancer_AnyEncount_Dx_Year_Prior=0; 
 run;
 
