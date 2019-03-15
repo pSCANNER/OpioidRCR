@@ -1,6 +1,7 @@
 
 /***************************************************************************************************/
 /**!!!! For all regressions when the PATIENT is the unit of analysis you must pick only ONE year */
+/*The logic here is choosing the most recent opioid exposure record, if one doesn't have opioid exposure record, then choose the most recent one.*/
 /***************************************************************************************************/
 proc sort data=dmlocal.opioid_flat_file out=dmlocal.opioid_flat_model;
 by patid descending opioid_flag descending indexdate;
