@@ -1,6 +1,67 @@
 
 
 %let threshold=11;
+data dmlocal.opioid_flat_model;
+set dmlocal.opioid_flat_file;
+TimeFromIndexOpioidToOUD=Opioid_Use_DO_Post_date - FirstOpioidDate;
+
+
+run;
+data dmlocal.opioid_flat_model;
+set dmlocal.opioid_flat_model;
+if TimeFromIndexOpioidToOUD>0 then Opioid_Use_DO_indicator=1;
+else Post_Rx_Opioid_Use_DO_indicator=0;
+run;
+proc sort data=dmlocal.opioid_flat_file;
+by encounterid;
+run;
+proc sort data=indata.encounter;
+by encounterid;
+run;
+data dmlocal.opioid_flat_file;
+merge indata.encounter(keep=encounterid providerid) dmlocal.opioid_flat_file(in=a);
+by encounterid;
+if a;
+run;
+data dmlocal.opioid_flat_file_exc_cancer;
+set dmlocal.opioid_flat_file;
+where Cancer_Inpt_Dx_Year_Prior=0 and CANCER_PROC_FLAG=0;
+run;
+proc sort data=dmlocal.opioid_flat_file;
+by patid eventyear;
+run;
+
+data opioid_flat_model;
+set dmlocal.opioid_flat_file; 
+by patid;
+retain count 0;
+if first.patid then count=0;
+if opioid_flag=1 then count=1;
+run;
+data opioid_flat_model;
+set opioid_flat_model;
+retain opioid_any_prior;
+by patid;
+if first.patid then opioid_any_prior=0;
+opioid_any_prior+count;
+run;
+
+proc sort data=opioid_flat_model out=dmlocal.opioid_flat_model;
+by patid descending opioid_any_prior descending eventyear;
+where opioid_any_prior in (0,1);
+run;
+
+data dmlocal.opioid_flat_model;
+set dmlocal.opioid_flat_model;
+by patid;
+if first.patid;
+drop count;
+run;
+
+data dmlocal.opioid_flat_model_exc_cancer;
+set dmlocal.opioid_flat_model;
+where Cancer_Inpt_Dx_Year_Prior=0 and CANCER_PROC_FLAG=0;
+run;
 
 
 /*SUMMARY TABLE - ALL*/
