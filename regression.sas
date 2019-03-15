@@ -3,6 +3,17 @@
 /**!!!! For all regressions when the PATIENT is the unit of analysis you must pick only ONE year */
 /*The logic here is choosing the first opioid exposure record, if one doesn't have opioid exposure record, then choose the most recent one.*/
 /***************************************************************************************************/
+data dmlocal.opioid_flat_model;
+set dmlocal.opioid_flat_file;
+TimeFromIndexOpioidToOUD=Opioid_Use_DO_Post_date - FirstOpioidDate;
+
+
+run;
+data dmlocal.opioid_flat_model;
+set dmlocal.opioid_flat_model;
+if TimeFromIndexOpioidToOUD>0 then Opioid_Use_DO_indicator=1;
+else Post_Rx_Opioid_Use_DO_indicator=0;
+run;
 proc sort data=dmlocal.opioid_flat_file;
 by encounterid;
 run;
