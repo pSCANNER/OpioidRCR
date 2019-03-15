@@ -1,6 +1,11 @@
+
+/***************************************************************************************************/
+/**!!!! For all regressions when the PATIENT is the unit of analysis you must pick only ONE year */
+/***************************************************************************************************/
 /*Regression 1a: Adjusted risk of OUD(Y) in patients with opioid exposure(X)--Cancer Excluded*/
 proc logistic data=opioid_flat_file_exc_cancer;
 	class race sex hispanic agegrp1 eventyear;
+	/** is this supposed to be a binary variable in logit? what about people where date is missing? ***/
 	model Opioid_Use_DO_Post_date=opioid_flag race sex hispanic agegrp1 eventyear;
 	where Opioid_Use_DO_Any_Prior=0 and DISPENSE_DATE ne .;
 run;
@@ -8,6 +13,7 @@ run;
 /*Regression 1b: Adjusted risk of OUD(Y) in patients with opioid exposure(X)--Cancer Only*/
 proc logistic data=opioid_flat_file;
 	class race sex hispanic agegrp1 eventyear;
+	/** is this supposed to be a binary variable in logit ***/
 	model Opioid_Use_DO_Post_date=opioid_flag race sex hispanic agegrp1 eventyear;
 	where Cancer_Inpt_Dx_Year_Prior=1 OR CANCER_PROC_FLAG=1;
 run;
@@ -16,24 +22,30 @@ run;
 proc glimmix data=opioid_flat_file_exc_cancer;
 	class race sex hispanic agegrp1 eventyear;
 	model opioid_flag=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear oud MH_Dx_Pri_Any_Prior;
+	/** random intercept should be provided ID **/	
 	random intercept / subject=Cancer_AnyEncount_Dx_Year_Prior;
 	where Cancer_AnyEncount_Dx_Year_Prior=0; 
 run;
 
-/*Regression 3: Predictors of Opioid Exposure Outcomes*/
+/*Regression 3: Predictors of Any Opioid Exposure */
+/* If you cannot easily create the necessary variables, conver this to a logit with the DV
 proc phreg data=opioid_flat_file_exc_cancer;
 	class race sex hispanic agegrp1 eventyear;
+	/* what happens if there is no opioid (i.e. censored)? */
 	model lookback_before_index_opioid*opioid_flag(0) = race sex hispanic agegrp1 eventyear Alcohol_Use_DO_Any_Prior 
 	Substance_Use_DO_Any_Prior Opioid_Use_DO_Any_Prior Cannabis_Use_DO_Any_Prior Cocaine_Use_DO_Any_Prior 
-	Hallucinogen_Use_DO_Any_Prior Inhalant_Use_DO_Any_Prior Other_Stim_Use_DO_Any_Prior SedHypAnx_Use_DO_Any_Prior / selection=stepwise;
+	Hallucinogen_Use_DO_Any_Prior Inhalant_Use_DO_Any_Prior Other_Stim_Use_DO_Any_Prior SedHypAnx_Use_DO_Any_Prior 
+	/ selection=stepwise;
 run;
 
 /*Regression 4: Predictors of Opioid Exposure Outcomes - Neonatal Abstinence Syndrome (current status 0.06% incidence)*/
 
 /*Regression 5: Predictors of chronic opioid use*/
 proc phreg data=opioid_flat_file_exc_cancer;
-class race sex hispanic agegrp1 eventyear;
-model CHRONIC_OPIOID_DATE*chronic_opioid(0) = race sex hispanic agegrp1 eventyear / selection=stepwise;
+	class race sex hispanic agegrp1 eventyear;
+	/* shouldn't this be time elapsed between index opioid exposure and chronic opioid date? */
+	/*what happens if there is no opioid (i.e. censored)? */
+	model CHRONIC_OPIOID_DATE*chronic_opioid(0) = race sex hispanic agegrp1 eventyear / selection=stepwise;
 run;
 
 /*Regression 6: Effects of Opioid and other Sched drugs on deaths*/
@@ -42,14 +54,14 @@ run;
 
 /*Regression 8: Adjusted risk of overdose*/
 proc logistic data=opioid_flat_file_exc_cancer;
-class  race sex hispanic agegrp1 eventyear;
-model od_pre=opioid_prescription  race sex hispanic agegrp1 eventyear;
+	class  race sex hispanic agegrp1 eventyear;
+	model od_pre=opioid_prescription  race sex hispanic agegrp1 eventyear;
 run;
 
 /*Regression 9: Adjusted risk of fatal overdose*/
 proc logistic data=opioid_flat_file_exc_cancer;
-class  race sex hispanic agegrp1 eventyear;
-model fatal_overdose=opioid_prescription race sex hispanic agegrp1 eventyear;
+	class  race sex hispanic agegrp1 eventyear;
+	model fatal_overdose=opioid_prescription race sex hispanic agegrp1 eventyear;
 run;
 
 /*Regression 10: Adjusted odds of smoking*/
