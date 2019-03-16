@@ -28,7 +28,7 @@ ods pdf startpage=now;
 title "Regression 2: Guideline adherence - mixed effects regression.";
 proc glimmix data=reg2;
   class race sex hispanic agegrp1 eventyear PROVIDERID;
-    model OPIOID_RX_RATE=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear Opioid_Use_DO_Any_Prior MH_Dx_Pri_Any_Prior/solution;
+    model OPIOID_RX_RATE=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear Opioid_Use_DO_Any_Prior /solution;
       random intercept / subject=PROVIDERID;
   ods select ModelInfo ClassLevels Dimensions OptInfo ConvergenceStatus FitStatistics CovParms Tests3;
 run;
