@@ -15,12 +15,12 @@ run;
 title "Regression 1: Adjusted risk of OUD in patients with opioid exposure - Cancer Excluded.";
 proc logistic data=reg1 out=DRNOC.reg1_oud_no_cancer;
   class race sex hispanic AGEGRP1 eventyear;
-  model Post_Rx_Opioid_Use_DO_indicator=opioid_flag race sex hispanic AGEGRP1 eventyear; 
+  model Post_Rx_Opioid_Use_DO_indicator=opioid_flag race sex hispanic AGEGRP1 eventyear;
   ods select ModelInfo ConvergenceStatus FitStatistics GlobalTests ModelANOVA ParameterEstimates OddsRatios Association;
 run;
 
 data reg2;
-  set DMLocal.opioid_flat_model_exc_cancer;
+  set DMLocal.mixedmodel;
   where Cancer_AnyEncount_Dx_Year_Prior = 0;
 run;
 
@@ -28,29 +28,29 @@ ods pdf startpage=now;
 title "Regression 2: Guideline adherence - mixed effects regression.";
 proc glimmix data=reg2;
   class race sex hispanic agegrp1 eventyear PROVIDERID;
-	model OPIOID_RX_RATE=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear Opioid_Use_DO_Any_Prior MH_Dx_Pri_Any_Prior/solution; 
-	random intercept / subject=PROVIDERID;
-  ods select ModelInfo ConvergenceStatus FitStatistics GlobalTests ModelANOVA ParameterEstimates OddsRatios Association;;
+    model OPIOID_RX_RATE=MH_Dx_Pri_Any_Prior race sex hispanic agegrp1 eventyear Opioid_Use_DO_Any_Prior MH_Dx_Pri_Any_Prior/solution;
+      random intercept / subject=PROVIDERID;
+  ods select ModelInfo ClassLevels Dimensions OptInfo ConvergenceStatus FitStatistics CovParms Tests3;
 run;
 
 
 ods pdf startpage=now;
 title "Regression 3: Predictors of Opioid Exposure Outcomes.";
-proc logistic data=opioid_flat_model_exc_cancer out=DRNOC.reg3_outcomes;
+proc logistic data=dmlocal.opioid_flat_model_exc_cancer out=DRNOC.reg3_outcomes;
   class race sex hispanic agegrp1 eventyear;
-	model opioid_flag = race sex hispanic agegrp1 eventyear Alcohol_Use_DO_Any_Prior 
-	Substance_Use_DO_Any_Prior Opioid_Use_DO_Any_Prior Cannabis_Use_DO_Any_Prior Cocaine_Use_DO_Any_Prior 
-	Hallucinogen_Use_DO_Any_Prior Inhalant_Use_DO_Any_Prior Other_Stim_Use_DO_Any_Prior SedHypAnx_Use_DO_Any_Prior 
-	/ selection=stepwise;
+        model opioid_flag = race sex hispanic agegrp1 eventyear Alcohol_Use_DO_Any_Prior
+        Substance_Use_DO_Any_Prior Opioid_Use_DO_Any_Prior Cannabis_Use_DO_Any_Prior Cocaine_Use_DO_Any_Prior
+        Hallucinogen_Use_DO_Any_Prior Inhalant_Use_DO_Any_Prior Other_Stim_Use_DO_Any_Prior SedHypAnx_Use_DO_Any_Prior
+        / selection=stepwise;
   ods select ModelInfo ConvergenceStatus FitStatistics GlobalTests ModelANOVA ParameterEstimates OddsRatios Association;
 run;
 
 
 ods pdf startpage=now;
 title "Regression 5: Predictors of chronic opioid use.";
-proc logistic data=opioid_flat_model_exc_cancer;
-	class race sex hispanic agegrp1 eventyear;
-	model chronic_opioid = race sex hispanic agegrp1 eventyear / selection=stepwise;
+proc logistic data=dmlocal.opioid_flat_model_exc_cancer;
+        class race sex hispanic agegrp1 eventyear;
+        model chronic_opioid = race sex hispanic agegrp1 eventyear / selection=stepwise;
   ods select ModelInfo ConvergenceStatus FitStatistics GlobalTests ModelANOVA ParameterEstimates OddsRatios Association;
 run;
 
