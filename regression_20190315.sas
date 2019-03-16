@@ -50,7 +50,7 @@ ods pdf startpage=now;
 title "Regression 5: Predictors of chronic opioid use.";
 proc logistic data=opioid_flat_model_exc_cancer;
 	class race sex hispanic agegrp1 eventyear;
-	model chronic_opioid(1) = race sex hispanic agegrp1 eventyear / selection=stepwise;
+	model chronic_opioid = race sex hispanic agegrp1 eventyear / selection=stepwise;
   ods select ModelInfo ConvergenceStatus FitStatistics GlobalTests ModelANOVA ParameterEstimates OddsRatios Association;
 run;
 
