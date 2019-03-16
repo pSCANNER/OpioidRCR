@@ -66,25 +66,24 @@ run;
 
 /*SUMMARY TABLE - ALL*/
 %macro summary(tablenm,sumnm);
-proc contents data=&tablenm out=contents (keep=name) noprint;
+proc contents data=&tablenm out=contents (keep=name type) noprint;
 run;
 
 proc sql noprint;
 select name
 into: varlist separated by " "
 from contents
-where name not in ("facility_location","race","sex","hispanic","AGEGRP1","eventyear");
+where name not in ("facility_location","race","sex","hispanic","AGEGRP1","eventyear") and type=1;
 quit;
 
 %let k=1;
 %let var=%scan(&varlist,&k);
 %do %while ("&var" NE "");
 
-proc sql;
+proc sql noprint;
 create table sum_&k as
 select facility_location, race, sex, hispanic, AGEGRP1, eventyear,
 count(*) as n "total number of the observations",
-count(&var) as n_&k "number of the non-missing values in &var",
 nmiss(&var) as nm_&k "number of the missing values in &var"
 from &tablenm
 group by facility_location, race, sex, hispanic, AGEGRP1, eventyear
