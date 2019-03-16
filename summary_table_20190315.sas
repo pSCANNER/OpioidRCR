@@ -270,4 +270,4 @@ run;
 
 %mend providersummary(tablenm,sumnm);
 
-%providersummary(dmlocal.mixedmodel,sum_provider);
+%providersummary(dmlocal.mixedmodel,drnoc.sum_provider);
