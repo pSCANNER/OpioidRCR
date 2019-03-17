@@ -299,3 +299,6 @@ run;
 %mend providersummary(tablenm,sumnm);
 
 %providersummary(dmlocal.mixedmodel,sum_provider);
+
+%put Turning off log capturing to rewrite log file and mask all numbers less than the low cell count threshold;
+proc printto; run;
