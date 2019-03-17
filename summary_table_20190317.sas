@@ -1,6 +1,21 @@
 
 proc printto log="&DRNOC.Opioid_RCR.log"; run;
 
+data dmlocal.opioid_flat_file;
+set dmlocal.opioid_flat_file;
+format BINARY_RACE $10. BINARY_SEX $10. BINARY_HISPANIC $10.;
+IF race IN ("NI","OT") then BINARY_RACE = "MISSING";
+ELSE IF race="05" then BINARY_RACE = "1";
+ELSE BINARY_RACE = "0";
+IF sex in ("NI","OT") then BINARY_SEX = "MISSING";
+ELSE IF sex = "F" then BINARY_SEX="1";
+ELSE BINARY_SEX ="0";
+IF hispanic IN ("NI","OT") then BINARY_HISPANIC= "MISSING";
+ELSE IF hispanic = "Y" then BINARY_HISPANIC="1";
+ELSE BINARY_HISPANIC = "0";
+run;
+
+
 data dmlocal.opioid_flat_model;
 set dmlocal.opioid_flat_file;
 TimeFromIndexOpioidToOUD=Opioid_Use_DO_Post_date - FirstOpioidDate;
