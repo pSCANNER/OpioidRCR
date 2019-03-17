@@ -99,7 +99,7 @@ select facility_location, race, sex, hispanic, AGEGRP1, eventyear,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&k "number of the missing values in &var",
 sum(&var) as n_&k "total number of positive values in &var"
-from &tablenm
+from DMLocal.&tablenm
 group by facility_location, race, sex, hispanic, AGEGRP1, eventyear
 order by facility_location, race, sex, hispanic, AGEGRP1, eventyear;
 quit;
@@ -120,7 +120,7 @@ run;
 
 %mend summary;
 
-%summary(DMLocal.opioid_flat_file,sum_all);
+%summary(opioid_flat_file,sum_all);
 
 /*SUMMARY TABLE - ALL NO CANCER*/
 PROC SQL NOPRINT;
@@ -131,11 +131,11 @@ PROC SQL NOPRINT;
   ;
 QUIT;
 
-%summary(DMLocal.opioid_flat_file_exc_cancer,sum_all_exc_cancer);
+%summary(opioid_flat_file_exc_cancer,sum_all_exc_cancer);
 
 /*SUMMARY TABLE - STD HISTORY*/
 PROC SQL NOPRINT;
-  CREATE TABLE opioid_flat_file_std AS
+  CREATE TABLE DMLocal.opioid_flat_file_std AS
   SELECT *
   FROM DMLocal.opioid_flat_file_exc_cancer
   WHERE ADMIT_DATE IS NOT NULL AND ANY_STD_Year_Prior=1
@@ -146,7 +146,7 @@ QUIT;
 
 /*SUMMARY TABLE - CHRONIC OPIOID USE HISTORY*/
 PROC SQL NOPRINT;
-  CREATE TABLE opioid_flat_file_cou AS
+  CREATE TABLE DMLocal.opioid_flat_file_cou AS
   SELECT *
   FROM DMLocal.opioid_flat_file_exc_cancer
   WHERE ADMIT_DATE IS NOT NULL AND CHRONIC_OPIOID_CURRENT_PRIOR = 1
@@ -157,7 +157,7 @@ QUIT;
 
 /*SUMMARY TABLE -OVERDOSE HISTORY*/
 PROC SQL NOPRINT;
-  CREATE TABLE opioid_flat_file_odh AS
+  CREATE TABLE DMLocal.opioid_flat_file_odh AS
   SELECT *
   FROM DMLocal.opioid_flat_file_exc_cancer
   WHERE ADMIT_DATE IS NOT NULL AND OD_PRE = 1
@@ -168,7 +168,7 @@ QUIT;
 
 /*SUMMARY TABLE -SUD Only*/
 PROC SQL NOPRINT;
-  CREATE TABLE opioid_flat_file_sud AS
+  CREATE TABLE DMLocal.opioid_flat_file_sud AS
   SELECT *
    FROM DMLocal.opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
   WHERE Substance_Use_DO_Any_Prior = 1 AND Opioid_Use_DO_Any_Prior ne 1 AND Alcohol_Use_DO_Any_Prior ne 1
@@ -180,7 +180,7 @@ QUIT;
 /*SUMMARY TABLE -OUD+SUD, NOT AUD*/
 
 PROC SQL NOPRINT;
-  CREATE TABLE opioid_flat_file_osud AS
+  CREATE TABLE DMLocal.opioid_flat_file_osud AS
   SELECT *
    FROM DMLocal.opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
   WHERE Substance_Use_DO_Any_Prior = 1 AND Opioid_Use_DO_Any_Prior = 1 AND Alcohol_Use_DO_Any_Prior ne 1
@@ -192,7 +192,7 @@ QUIT;
 /*SUMMARY TABLE - OUD Only*/
 
 PROC SQL NOPRINT;
-  CREATE TABLE opioid_flat_file_oud AS
+  CREATE TABLE DMLocal.opioid_flat_file_oud AS
   SELECT *
    FROM DMLocal.opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
   WHERE Substance_Use_DO_Any_Prior ne 1 AND Opioid_Use_DO_Any_Prior = 1 AND Alcohol_Use_DO_Any_Prior ne 1
@@ -204,7 +204,7 @@ QUIT;
 /*SUMMARY TABLE -AUD Only*/
 
 PROC SQL NOPRINT;
-  CREATE TABLE opioid_flat_file_aud AS
+  CREATE TABLE DMLocal.opioid_flat_file_aud AS
   SELECT *
    FROM DMLocal.opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
   WHERE Substance_Use_DO_Any_Prior ne 1 AND Opioid_Use_DO_Any_Prior ne 1 AND Alcohol_Use_DO_Any_Prior = 1
@@ -216,7 +216,7 @@ QUIT;
 /*SUMMARY TABLE - OPIOID EXPOSURE */
 
 PROC SQL NOPRINT;
-  CREATE TABLE opioid_flat_file_oep AS
+  CREATE TABLE DMLocal.opioid_flat_file_oep AS
   SELECT *
    FROM DMLocal.opioid_flat_file_exc_cancer(where=(ADMIT_DATE IS NOT NULL))
   WHERE  Opioid_flag = 1 
