@@ -73,18 +73,32 @@ proc sql noprint;
 select name
 into: varlist separated by " "
 from contents
-where name not in ("facility_location","race","sex","hispanic","AGEGRP1","eventyear") and type=1;
+where type = 1 AND name not in ("facility_location","race","sex","hispanic","AGEGRP1","eventyear") ;
+quit;
+
+ods select nlevels;
+ods table nlevels=n_levels;
+proc freq data=test nlevels noprint;
+table &varlist ;
+run;
+
+proc sql noprint;
+select tablevar
+into:binvar separated by " "
+from n_levels
+where nlevels <= 2;
 quit;
 
 %let k=1;
-%let var=%scan(&varlist,&k);
+%let var=%scan(&binvar,&k);
 %do %while ("&var" NE "");
 
 proc sql noprint;
 create table sum_&k as
 select facility_location, race, sex, hispanic, AGEGRP1, eventyear,
 count(*) as n "total number of the observations",
-nmiss(&var) as nm_&k "number of the missing values in &var"
+nmiss(&var) as nm_&k "number of the missing values in &var",
+sum(&var) as n_&k "total number of positive values in &var"
 from &tablenm
 group by facility_location, race, sex, hispanic, AGEGRP1, eventyear
 order by facility_location, race, sex, hispanic, AGEGRP1, eventyear;
@@ -96,7 +110,7 @@ data sum_&k;
   if 0 < n_&k < &THRESHOLD then n_&k = .t;
   if 0 < nm_&k < &THRESHOLD then nm_&k = .t;
   %LET k=%EVAL(&k+1);
-  %LET var=%SCAN(&varlist,&k);
+  %LET var=%SCAN(&binvar,&k);
   %end;
   %LET k=%EVAL(&k-1);
 data DRNOC.&sumnm;
@@ -216,7 +230,7 @@ QUIT;
 
 proc sql noprint;
 create table mixedmodel as
-select*,sum(opioid_any_prior) as sum, count(*) as cnt
+select*,sum(opioid_flag) as sum, count(*) as cnt
 from dmlocal.opioid_flat_model_exc_cancer
 group by providerid,eventyear;
 quit;
@@ -228,19 +242,34 @@ drop sum cnt;
 run;
 
 %macro providersummary(tablenm,sumnm);
-proc contents data=&tablenm out=contents (keep=name) noprint;
+
+proc contents data=&tablenm out=contents (keep=name type) noprint;
 run;
 
 proc sql noprint;
 select name
 into: varlist separated by " "
 from contents
-where name not in ("facility_location","race","sex","hispanic","AGEGRP1","eventyear","PROVIDERID");
+where type = 1 AND name not in ("facility_location","race","sex","hispanic","AGEGRP1","eventyear") ;
+quit;
+
+ods select nlevels;
+ods table nlevels=n_levels;
+proc freq data=test nlevels noprint;
+table &varlist ;
+run;
+
+proc sql noprint;
+select tablevar
+into:binvar separated by " "
+from n_levels
+where nlevels <= 2;
 quit;
 
 %let k=1;
-%let var=%scan(&varlist,&k);
+%let var=%scan(&binvar,&k);
 %do %while ("&var" NE "");
+
 
 proc sql;
 create table sum_&k as
@@ -259,14 +288,14 @@ if 0<n<&threshold then n=.t;
 if 0<n_&k<&threshold then n_&k=.t;
 if 0<nm_&k<&threshold then nm_&k=.t;
 %LET k=%EVAL(&k+1);
-%LET var=%SCAN(&varlist,&k);
+%LET var=%SCAN(&binvar,&k);
 %end;
 %LET k=%EVAL(&k-1);
-data &sumnm;
+data DRNOC.&sumnm;
 merge sum_1-sum_&k;
 by facility_location race sex hispanic agegrp1 eventyear providerid;
 run;
 
 %mend providersummary(tablenm,sumnm);
 
-%providersummary(dmlocal.mixedmodel,drnoc.sum_provider);
+%providersummary(dmlocal.mixedmodel,sum_provider);
