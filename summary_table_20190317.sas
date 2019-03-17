@@ -352,7 +352,7 @@ quit;
 proc sql noprint;
 create table sum_&k as
 select facility_location, binary_race, binary_sex, binary_hispanic,  eventyear,
-mean(AgeAsOfJuly1) as mean_age "mean age of each strata",
+mean(AgeAsOfJuly1) as mean_age "mean age of each strata" format=10.,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&k "number of the missing values in &var",
 sum(&var) as n_&k "total number of positive values in &var"
