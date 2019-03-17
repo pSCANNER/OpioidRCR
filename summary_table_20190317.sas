@@ -1,19 +1,7 @@
 
 proc printto log="&DRNOC.Opioid_RCR.log"; run;
 
-data dmlocal.opioid_flat_file;
-set dmlocal.opioid_flat_file;
-format BINARY_RACE $10. BINARY_SEX $10. BINARY_HISPANIC $10.;
-IF race IN ("NI","OT") then BINARY_RACE = "MISSING";
-ELSE IF race="05" then BINARY_RACE = "1";
-ELSE BINARY_RACE = "0";
-IF sex in ("NI","OT") then BINARY_SEX = "MISSING";
-ELSE IF sex = "F" then BINARY_SEX="1";
-ELSE BINARY_SEX ="0";
-IF hispanic IN ("NI","OT") then BINARY_HISPANIC= "MISSING";
-ELSE IF hispanic = "Y" then BINARY_HISPANIC="1";
-ELSE BINARY_HISPANIC = "0";
-run;
+
 
 
 data dmlocal.opioid_flat_model;
@@ -42,6 +30,22 @@ data dmlocal.opioid_flat_file_exc_cancer;
 set dmlocal.opioid_flat_file;
 where Cancer_Inpt_Dx_Year_Prior=0 and CANCER_PROC_FLAG=0;
 run;
+
+data dmlocal.opioid_flat_file_binary;
+set dmlocal.opioid_flat_file_exc_cancer;
+format BINARY_RACE $10. BINARY_SEX $10. BINARY_HISPANIC $10.;
+IF race IN ("NI","OT") then BINARY_RACE = "MISSING";
+ELSE IF race="05" then BINARY_RACE = "01";
+ELSE BINARY_RACE = "00";
+IF sex in ("NI","OT") then BINARY_SEX = "MISSING";
+ELSE IF sex = "F" then BINARY_SEX="01";
+ELSE BINARY_SEX ="00";
+IF hispanic IN ("NI","OT") then BINARY_HISPANIC= "MISSING";
+ELSE IF hispanic = "Y" then BINARY_HISPANIC="01";
+ELSE BINARY_HISPANIC = "00";
+drop race sex hispanic;
+run;
+
 proc sort data=dmlocal.opioid_flat_file;
 by patid eventyear;
 run;
@@ -81,7 +85,7 @@ run;
 
 /*SUMMARY TABLE - ALL*/
 %macro summary(tablenm,sumnm);
-proc contents data=&tablenm out=contents (keep=name type) noprint;
+proc contents data=dmlocal.&tablenm out=contents (keep=name type) noprint;
 run;
 
 proc sql noprint;
@@ -93,7 +97,7 @@ quit;
 
 ods select nlevels;
 ods table nlevels=n_levels;
-proc freq data=test nlevels noprint;
+proc freq data=dmlocal.&tablenm nlevels noprint;
 table &varlist ;
 run;
 
@@ -258,7 +262,7 @@ run;
 
 %macro providersummary(tablenm,sumnm);
 
-proc contents data=&tablenm out=contents (keep=name type) noprint;
+proc contents data=dmlocal.&tablenm out=contents (keep=name type) noprint;
 run;
 
 proc sql noprint;
@@ -270,7 +274,7 @@ quit;
 
 ods select nlevels;
 ods table nlevels=n_levels;
-proc freq data=test nlevels noprint;
+proc freq data=dmlocal.&tablenm nlevels noprint;
 table &varlist ;
 run;
 
@@ -292,7 +296,7 @@ select facility_location, race, sex, hispanic, agegrp1, eventyear,providerid,
 count(*) as n "total number of the observations",
 count(&var) as n_&k "number of the non-missing values in &var" ,
 nmiss(&var) as nm_&k "number of the missing values in &var" 
-from &tablenm
+from dmlocal.&tablenm
 group by facility_location, race, sex, hispanic, agegrp1, eventyear, providerid
 order by facility_location, race, sex, hispanic, agegrp1, eventyear, providerid;
 quit;
@@ -313,7 +317,67 @@ run;
 
 %mend providersummary(tablenm,sumnm);
 
-%providersummary(dmlocal.mixedmodel,sum_provider);
+%providersummary(mixedmodel,sum_provider);
+
+/*Summary Table - all non cancer (strata B) - BINARY*/
+
+%macro binarysummary(tablenm,sumnm);
+proc contents data=dmlocal.&tablenm out=contents (keep=name type) noprint;
+run;
+
+proc sql noprint;
+select name
+into: varlist separated by " "
+from contents
+where type = 1 AND name not in ("facility_location","BINARY_RACE","BINARY_SEX","BINARY_HISPANIC",,"eventyear") ;
+quit;
+
+ods select nlevels;
+ods table nlevels=n_levels;
+proc freq data=dmlocal.&tablenm nlevels noprint;
+table &varlist ;
+run;
+
+proc sql noprint;
+select tablevar
+into:binvar separated by " "
+from n_levels
+where nlevels <= 2;
+quit;
+
+%let k=1;
+%let var=%scan(&binvar,&k);
+%do %while ("&var" NE "");
+
+proc sql noprint;
+create table sum_&k as
+select facility_location, binary_race, binary_sex, binary_hispanic,  eventyear,
+mean(AgeAsOfJuly1) as mean_age "mean age of each strata",
+count(*) as n "total number of the observations",
+nmiss(&var) as nm_&k "number of the missing values in &var",
+sum(&var) as n_&k "total number of positive values in &var"
+from DMLocal.&tablenm
+group by facility_location, binary_race, binary_sex, binary_hispanic,  eventyear
+order by facility_location, binary_race, binary_sex, binary_hispanic, eventyear;
+quit;
+
+data sum_&k;
+  set sum_&k;
+  if 0 < n < &THRESHOLD then n = .t;
+  if 0 < n_&k < &THRESHOLD then n_&k = .t;
+  if 0 < nm_&k < &THRESHOLD then nm_&k = .t;
+  %LET k=%EVAL(&k+1);
+  %LET var=%SCAN(&binvar,&k);
+  %end;
+  %LET k=%EVAL(&k-1);
+data DRNOC.&sumnm;
+  merge sum_1-sum_&k;
+  by facility_location binary_race binary_sex binary_hispanic eventyear;
+run;
+
+%mend binarysummary;
+
+%binarysummary(opioid_flat_file_binary,sum_binary);
 
 %put Turning off log capturing to rewrite log file and mask all numbers less than the low cell count threshold;
 proc printto; run;
