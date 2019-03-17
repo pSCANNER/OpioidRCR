@@ -1,4 +1,4 @@
-%let threshold=11;
+proc printto log="&DRNOC.Opioid_RCR.log"; run;
 
 /*{top 1000 dx codes in sub-population defined in summary tables}*/
 %macro dxprofilling(flatfile,proftable);
@@ -154,6 +154,9 @@ proc sql noprint;
 create table dmlocal.mh_exploratory_pat as
 select patid,dx
 from infolder.mentalhealth as M,indata.diagnosis as D
+
+%put Turning off log capturing to rewrite log file and mask all numbers less than the low cell count threshold;
+proc printto; run;
 where M.code=D.dx and M.code_subset="Exploratory";
 quit;
 
