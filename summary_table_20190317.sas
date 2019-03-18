@@ -312,13 +312,13 @@ quit;
 
 proc sql;
 create table sum_&k as
-select providerid,eventyear,
+select providerid,
 sum(cnt) as n "total number of the observations",
 mean(&var) as n_&k "mean rate of &var" ,
 std(&var) as nm_&k "standard deviation of mean rate of &var" 
 from dmlocal.&tablenm
-group by providerid, eventyear
-order by providerid, eventyear;
+group by providerid
+order by providerid;
 quit;
 
 data sum_&k;
@@ -331,7 +331,7 @@ run;
 %LET k=%EVAL(&k-1);
 data DRNOC.&sumnm;
 merge sum_1-sum_&k;
-by providerid eventyear;
+by providerid;
 run;
 
 %mend providersummary(tablenm,sumnm);
