@@ -82,6 +82,20 @@ set dmlocal.opioid_flat_model;
 where Cancer_Inpt_Dx_Year_Prior=0 and CANCER_PROC_FLAG=0;
 run;
 
+data dmlocal.opioid_flat_model_binary;
+set dmlocal.opioid_flat_model_exc_cancer;
+format BINARY_RACE $10. BINARY_SEX $10. BINARY_HISPANIC $10.;
+IF race IN ("NI","OT") then BINARY_RACE = "MISSING";
+ELSE IF race="05" then BINARY_RACE = "01";
+ELSE BINARY_RACE = "00";
+IF sex in ("NI","OT") then BINARY_SEX = "MISSING";
+ELSE IF sex = "F" then BINARY_SEX="01";
+ELSE BINARY_SEX ="00";
+IF hispanic IN ("NI","OT") then BINARY_HISPANIC= "MISSING";
+ELSE IF hispanic = "Y" then BINARY_HISPANIC="01";
+ELSE BINARY_HISPANIC = "00";
+drop race sex hispanic;
+run;
 
 /*SUMMARY TABLE - ALL*/
 %macro summary(tablenm,sumnm);
