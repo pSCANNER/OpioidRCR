@@ -9,7 +9,7 @@ proc printto log="&DRNOC.Opioid_RCR.log"; run;
 
 data reg1 ;
   set DMLocal.opioid_flat_model_binary;
-  where Opioid_Use_DO_Any_Prior=0 AND DISPENSE_DATE ne .;
+  where Opioid_Use_DO_Any_Prior=0 ;
 run;
 
 title "Regression 1: Adjusted risk of OUD in patients with opioid exposure - Cancer Excluded.";
