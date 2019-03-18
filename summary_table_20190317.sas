@@ -259,7 +259,7 @@ QUIT;
 proc sql noprint;
 create table mixedmodel_binary as
 select distinct providerid,eventyear,agegrp1,binary_sex,binary_race,binary_hispanic,sum(opioid_flag) as ofsum,sum(chronic_opioid) as cosum,sum(bdz_3mo) as bdzsum, count(*) as cnt
-from opioid_flat_model_binary
+from dmlocal.opioid_flat_model_binary
 group by providerid,eventyear,facility_location,agegrp1,binary_sex,binary_race,binary_hispanic;
 quit;
 
