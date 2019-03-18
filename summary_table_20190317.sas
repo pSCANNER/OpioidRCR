@@ -246,19 +246,37 @@ QUIT;
 
 /*SUMMARY TABLE - PROVIDER LEVEL*/
 
+data opioid_flat_model_binary;
+set dmlocal.opioid_flat_model_exc_cancer;
+format BINARY_RACE $10. BINARY_SEX $10. BINARY_HISPANIC $10.;
+IF race IN ("NI","OT") then BINARY_RACE = "MISSING";
+ELSE IF race="05" then BINARY_RACE = "01";
+ELSE BINARY_RACE = "00";
+IF sex in ("NI","OT") then BINARY_SEX = "MISSING";
+ELSE IF sex = "F" then BINARY_SEX="01";
+ELSE BINARY_SEX ="00";
+IF hispanic IN ("NI","OT") then BINARY_HISPANIC= "MISSING";
+ELSE IF hispanic = "Y" then BINARY_HISPANIC="01";
+ELSE BINARY_HISPANIC = "00";
+drop race sex hispanic;
+run;
 
 proc sql noprint;
-create table mixedmodel as
-select*,sum(opioid_flag) as sum, count(*) as cnt
-from dmlocal.opioid_flat_model_exc_cancer
-group by providerid,eventyear;
+create table mixedmodel_binary as
+select distinct providerid,eventyear,agegrp1,binary_sex,binary_race,binary_hispanic,sum(opioid_flag) as ofsum,sum(chronic_opioid) as cosum,sum(bdz_3mo) as bdzsum, count(*) as cnt
+from opioid_flat_model_binary
+group by providerid,eventyear,agegrp1,binary_sex,binary_race,binary_hispanic;
 quit;
 
-data dmlocal.mixedmodel;
-set mixedmodel;
-OPIOID_RX_RATE=sum/cnt;
-drop sum cnt;
+data dmlocal.mixedmodel_binary;
+set mixedmodel_binary;
+OPIOID_RX_RATE=ofsum/cnt;
+CHRONIC_OPIOID_RX_RATE=cosum/cnt;
+BENZO_RX_RATE =bdzsum/cnt;
+drop ofsum cosum bdzsum cnt;
 run;
+
+
 
 %macro providersummary(tablenm,sumnm);
 
@@ -269,55 +287,43 @@ proc sql noprint;
 select name
 into: varlist separated by " "
 from contents
-where type = 1 AND name not in ("facility_location","race","sex","hispanic","AGEGRP1","eventyear") ;
+where name like ("%RATE%") ;
 quit;
 
-ods select nlevels;
-ods table nlevels=n_levels;
-proc freq data=dmlocal.&tablenm nlevels noprint;
-table &varlist ;
-run;
 
-proc sql noprint;
-select tablevar
-into:binvar separated by " "
-from n_levels
-where nlevels <= 2;
-quit;
 
 %let k=1;
-%let var=%scan(&binvar,&k);
+%let var=%scan(&varlist,&k);
 %do %while ("&var" NE "");
 
 
 proc sql;
 create table sum_&k as
-select facility_location, race, sex, hispanic, agegrp1, eventyear,providerid,
+select providerid,eventyear,
 count(*) as n "total number of the observations",
-count(&var) as n_&k "number of the non-missing values in &var" ,
-nmiss(&var) as nm_&k "number of the missing values in &var" 
+mean(&var) as n_&k "mean rate of &var" ,
+std(&var) as nm_&k "standard deviation of mean rate of &var" 
 from dmlocal.&tablenm
-group by facility_location, race, sex, hispanic, agegrp1, eventyear, providerid
-order by facility_location, race, sex, hispanic, agegrp1, eventyear, providerid;
+group by providerid, eventyear
+order by providerid, eventyear;
 quit;
 
 data sum_&k;
 set sum_&k;
-if 0<n<&threshold then n=.t;
-if 0<n_&k<&threshold then n_&k=.t;
-if 0<nm_&k<&threshold then nm_&k=.t;
+  if 0 < n < &THRESHOLD then n = .t;
+run;
 %LET k=%EVAL(&k+1);
-%LET var=%SCAN(&binvar,&k);
+%LET var=%SCAN(&varlist,&k);
 %end;
 %LET k=%EVAL(&k-1);
 data DRNOC.&sumnm;
 merge sum_1-sum_&k;
-by facility_location race sex hispanic agegrp1 eventyear providerid;
+by providerid eventyear;
 run;
 
 %mend providersummary(tablenm,sumnm);
 
-%providersummary(mixedmodel,sum_provider);
+%providersummary(mixedmodel_binary,sum_provider);
 
 /*Summary Table - all non cancer (strata B) - BINARY*/
 
