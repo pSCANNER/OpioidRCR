@@ -7,6 +7,7 @@ ods pdf style=style1 file="&DRNOC./Opioid_RCR_report.pdf"  startpage=no style=jo
 proc printto log="&DRNOC.Opioid_RCR.log"; run;
 %put Turning log capturing back on;
 
+ods pdf startpage=now;
 data reg1 ;
   set DMLocal.opioid_flat_model_binary;
   where Opioid_Use_DO_Any_Prior=0 ;
