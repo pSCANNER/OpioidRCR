@@ -4,16 +4,7 @@ proc printto log="&DRNOC.Opioid_RCR.log"; run;
 
 
 
-data dmlocal.opioid_flat_model;
-set dmlocal.opioid_flat_file;
-TimeFromIndexOpioidToOUD=Opioid_Use_DO_Post_date - FirstOpioidDate;
-run;
 
-data dmlocal.opioid_flat_model;
-set dmlocal.opioid_flat_model;
-if TimeFromIndexOpioidToOUD>0 then Opioid_Use_DO_indicator=1;
-else Post_Rx_Opioid_Use_DO_indicator=0;
-run;
 proc sort data=dmlocal.opioid_flat_file;
 by encounterid;
 run;
@@ -75,7 +66,16 @@ by patid;
 if first.patid;
 drop count;
 run;
+data dmlocal.opioid_flat_model;
+set dmlocal.opioid_flat_model;
+TimeFromIndexOpioidToOUD=Opioid_Use_DO_Post_date - FirstOpioidDate;
+run;
 
+data dmlocal.opioid_flat_model;
+set dmlocal.opioid_flat_model;
+if TimeFromIndexOpioidToOUD>0 then Opioid_Use_DO_indicator=1;
+else Post_Rx_Opioid_Use_DO_indicator=0;
+run;
 data dmlocal.opioid_flat_model_exc_cancer;
 set dmlocal.opioid_flat_model;
 where Cancer_Inpt_Dx_Year_Prior=0 and CANCER_PROC_FLAG=0;
