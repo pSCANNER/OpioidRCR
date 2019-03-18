@@ -51,7 +51,10 @@ ods pdf startpage=now;
 title "Regression 5: Predictors of chronic opioid use.";
 proc logistic data=dmlocal.opioid_flat_model_binary descending;
         class binary_race(ref='01')  binary_sex(ref='01') binary_hispanic(ref='01') agegrp1(ref='>=65')  eventyear(ref='2017') ;
-        model chronic_opioid = binary_race binary_sex binary_hispanic agegrp1 eventyear / selection=stepwise;
+        model chronic_opioid =binary_race binary_sex binary_hispanic agegrp1 eventyear Alcohol_Use_DO_Any_Prior
+        Substance_Use_DO_Any_Prior Opioid_Use_DO_Any_Prior Cannabis_Use_DO_Any_Prior Cocaine_Use_DO_Any_Prior
+        Hallucinogen_Use_DO_Any_Prior Inhalant_Use_DO_Any_Prior Other_Stim_Use_DO_Any_Prior SedHypAnx_Use_DO_Any_Prior
+        / selection=stepwise;
   ods select ModelInfo ConvergenceStatus FitStatistics GlobalTests ModelANOVA ParameterEstimates OddsRatios Association;
 run;
 
