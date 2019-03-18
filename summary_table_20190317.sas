@@ -7,9 +7,8 @@ proc printto log="&DRNOC.Opioid_RCR.log"; run;
 data dmlocal.opioid_flat_model;
 set dmlocal.opioid_flat_file;
 TimeFromIndexOpioidToOUD=Opioid_Use_DO_Post_date - FirstOpioidDate;
-
-
 run;
+
 data dmlocal.opioid_flat_model;
 set dmlocal.opioid_flat_model;
 if TimeFromIndexOpioidToOUD>0 then Opioid_Use_DO_indicator=1;
