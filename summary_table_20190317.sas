@@ -1,9 +1,6 @@
 
-proc printto log="&DRNOC.Opioid_RCR.log"; run;
-
-
-
-
+proc printto log="&DRNOC.Opioid_RCR.log"; 
+run;
 
 proc sort data=dmlocal.opioid_flat_file;
 by encounterid;
