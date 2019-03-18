@@ -287,7 +287,7 @@ set mixedmodel_binary;
 OPIOID_RX_RATE=ofsum/cnt;
 CHRONIC_OPIOID_RX_RATE=cosum/cnt;
 BENZO_RX_RATE =bdzsum/cnt;
-drop ofsum cosum bdzsum cnt;
+drop ofsum cosum bdzsum;
 run;
 
 
@@ -314,7 +314,7 @@ quit;
 proc sql;
 create table sum_&k as
 select providerid,eventyear,
-count(*) as n "total number of the observations",
+sum(cnt) as n "total number of the observations",
 mean(&var) as n_&k "mean rate of &var" ,
 std(&var) as nm_&k "standard deviation of mean rate of &var" 
 from dmlocal.&tablenm
