@@ -291,7 +291,7 @@ OR (upcase(t3.RAW_RX_MED_NAME)) like upcase('Exalgo %')/*902730BN*/
 OR (upcase(t3.RAW_RX_MED_NAME)) like upcase('Fentanyl %')/*4337IN*/
 OR (upcase(t3.RAW_RX_MED_NAME)) like upcase('Fentora %')/*668619BN*/
 OR (upcase(t3.RAW_RX_MED_NAME)) like upcase(' Codeine %')/*217126BN Fioricet with */
-/*OR (upcase(t3.RAW_RX_MED_NAME)) like upcase(‘Codeine %') 217127BN Fiorinal with */
+/*OR (upcase(t3.RAW_RX_MED_NAME)) like upcase(Â‘Codeine %') 217127BN Fiorinal with */
 OR (upcase(t3.RAW_RX_MED_NAME)) like upcase('Flowtuss %')/*1650977BN*/
 OR (upcase(t3.RAW_RX_MED_NAME)) like upcase('Guiatuss AC %')/*217453BN*/
 OR (upcase(t3.RAW_RX_MED_NAME)) like upcase('Histex AC %')/*1661320BN*/
