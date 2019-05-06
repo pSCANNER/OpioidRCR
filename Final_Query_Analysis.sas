@@ -1,0 +1,244 @@
+LIBNAME old "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\AggregateData";
+LIBNAME new "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\UpdatedAggregateData";
+%LET oldpath=C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\AggregateData\;
+%LET newpath=C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\UpdatedAggregateData\;
+
+
+%MACRO import(filename,dataset);
+PROC IMPORT OUT= OLD.&dataset
+            DATAFILE= "&oldpath&filename" 
+            DBMS=CSV REPLACE;
+     GETNAMES=YES;
+     DATAROW=2; 
+RUN;
+proc contents data=OLD.&dataset out=vars(keep=name type) noprint;
+run; 
+data vars;                                                
+   set vars;                                                 
+   if type=2 and name not in ("site","facility_location","race","sex","hispanic","AGEGRP1","eventyear") ;                               
+   newname=trim(left(name))||"_n"; 
+run;                                                                              
+proc sql noprint;                                         
+   select trim(left(name)), trim(left(newname)),             
+          trim(left(newname))||'='||trim(left(name))         
+          into :c_list separated by ' ', :n_list separated by ' ',  
+          :renam_list separated by ' '                         
+          from vars;                                                
+quit;                                                                                                               
+ data OLD.&dataset;                                               
+   set OLD.&dataset;                                                 
+   array ch(*) $ &c_list;                                    
+   array nu(*) &n_list;                                      
+   do i = 1 to dim(ch);                                      
+      nu(i)=input(ch(i),8.);                                  
+   end;                                                      
+   drop i &c_list;                                           
+   rename &renam_list;                                                                                      
+run;                                                                                                                       
+ 
+%MEND import;
+%MACRO export(dataset);
+PROC EXPORT DATA=new.&dataset
+            OUTFILE= "&newpath&dataset..csv" 
+            DBMS=CSV REPLACE;
+RUN;
+%MEND export;
+%import (sum_binary.csv,sum_binary);
+%import (sum_oud.csv,sum_oud);
+%import (sum_opioid_exposure.csv,sum_opioid_exposure);
+%import (sum_chronic_opioid.csv,sum_chronic_opioid);
+%import (sum_overdose.csv,sum_overdose);
+/*Table indicating extend OUD population reflect co-morbid mental illness (primary list) recommendation to look at any year vs 1 year prior and 
+what are the demographic characteristics of the dual diagnosis population (age, gender, race, ethnicity) */
+
+PROC SQL noprint;
+CREATE TABLE NEW.oud_mhpri_any_prior AS
+SELECT SUM(n_57) as Number_of_comorbid_oud_mhpri, race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY race, sex, hispanic, agegrp1;
+QUIT;
+PROC SQL noprint;
+CREATE TABLE NEW.oud_mhpri_year_prior AS
+SELECT SUM(n_58) as Number_of_comorbid_oud_mhpri, race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY race, sex, hispanic, agegrp1;
+QUIT;
+%export(oud_mhpri_year_prior);
+%export(oud_mhpri_any_prior);
+
+/*Table indicating extend OUD population reflect co-morbid mental illness (exploratory list) recommendation to look at any year vs 1 year prior and 
+what are the demographic characteristics of the dual diagnosis population (age, gender, race, ethnicity) */
+PROC SQL noprint;
+CREATE TABLE NEW.oud_mhexp_any_prior AS
+SELECT SUM(n_55) as Number_of_comorbid_oud_mhexp, race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY race, sex, hispanic, agegrp1;
+QUIT;
+PROC SQL noprint;
+CREATE TABLE NEW.oud_mhexp_year_prior AS
+SELECT SUM(n_56) as Number_of_comorbid_oud_mhexp, race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY race, sex, hispanic, agegrp1;
+QUIT;
+%export(oud_mhexp_year_prior);
+%export(oud_mhexp_any_prior);
+
+/*Identify polysubstance abuse patterns in the OUD population (co-occurring alcohol use disorder, non-opioid/non-alcohol substance use disorder, cannabis use disorder, 
+cocaine use disorder, other stimulant use disorder, inhalant use disorder, sedative/hypnotic/anxiolytic use disorder, hallucinogen use disorder) 
+and what are the demographic (age, gender, race, ethnicity) and geographic characteristics) of the polysubstance abuse population?*/
+PROC SQL noprint;
+CREATE TABLE NEW.oud_aud_any_prior AS
+SELECT SUM(n_2) as Number_of_cooccur_oud_aud, facility_location,race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY facility_location,race, sex, hispanic, agegrp1;
+QUIT;
+PROC SQL noprint;
+CREATE TABLE NEW.oud_aud_year_prior AS
+SELECT SUM(n_2) as Number_of_cooccur_oud_aud, facility_location,race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY facility_location,race, sex, hispanic, agegrp1;
+QUIT;
+%export(oud_aud_year_prior);
+%export(oud_aud_any_prior);
+
+PROC SQL noprint;
+CREATE TABLE NEW.oud_cannabis_any_prior AS
+SELECT SUM(n_23) as Number_of_cooccur_oud_cannabis,facility_location, race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY facility_location, race, sex, hispanic, agegrp1;
+QUIT;
+PROC SQL noprint;
+CREATE TABLE NEW.oud_cannabis_year_prior AS
+SELECT SUM(n_24) as Number_of_cooccur_oud_cannabis, facility_location,race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY facility_location,race, sex, hispanic, agegrp1;
+QUIT;
+%export(oud_cannabis_year_prior);
+%export(oud_cannabis_any_prior);
+
+PROC SQL noprint;
+CREATE TABLE NEW.oud_inhalent_any_prior AS
+SELECT SUM(n_46) as Number_of_cooccur_oud_inhalent,facility_location, race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY facility_location,race, sex, hispanic, agegrp1;
+QUIT;
+PROC SQL noprint;
+CREATE TABLE NEW.oud_inhalent_year_prior AS
+SELECT SUM(n_48) as Number_of_cooccur_oud_inhalent,facility_location, race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY facility_location,race, sex, hispanic, agegrp1;
+QUIT;
+%export(oud_inhalent_year_prior);
+%export(oud_inhalent_any_prior);
+
+PROC SQL noprint;
+CREATE TABLE NEW.oud_hallucinogen_any_prior AS
+SELECT SUM(n_38) as Number_of_cooccur_oud_hlcg, facility_location,race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY facility_location,race, sex, hispanic, agegrp1;
+QUIT;
+PROC SQL noprint;
+CREATE TABLE NEW.oud_hallucinogen_year_prior AS
+SELECT SUM(n_40) as Number_of_cooccur_oud_hlcg, facility_location,race, sex, hispanic, agegrp1
+FROM old.sum_oud
+GROUP BY facility_location,race, sex, hispanic, agegrp1;
+QUIT;
+%export(oud_hallucinogen_year_prior);
+%export(oud_hallucinogen_any_prior);
+
+/*Identify statistics on uptake of MAT in each subpopulation (focus on opioid exposed, chronic opioid use, OUD, and opioid overdose populations)? */
+PROC SQL noprint;
+CREATE TABLE NEW.mat_opioid_exposure AS
+SELECT race, sex, hispanic, agegrp1,
+SUM(n_7) as Number_of_bup_disp_post,
+SUM(n_9) as Number_of_BUP_DISP_PRE, 
+SUM(n_11) as Number_of_BUP_PRESC_POST, 
+SUM(n_12) as Number_of_BUP_PRESC_PRE, 
+SUM(n_47) as Number_of_methadone_disp_post,
+SUM(n_49) as Number_of_methadone_DISP_PRE, 
+SUM(n_51) as Number_of_methadone_PRESC_POST, 
+SUM(n_52) as Number_of_methadone_PRESC_PRE,
+SUM(n_62) as Number_of_NALTREX_disp_post,
+SUM(n_64) as Number_of_NALTREX_DISP_PRE, 
+SUM(n_66) as Number_of_NALTREX_PRESC_POST, 
+SUM(n_67) as Number_of_NALTREX_PRESC_PRE
+FROM old.sum_opioid_exposure
+GROUP BY race, sex, hispanic, agegrp1;
+QUIT;
+
+PROC SQL noprint;
+CREATE TABLE NEW.mat_chronic_opioid AS
+SELECT race, sex, hispanic, agegrp1,
+SUM(n_7) as Number_of_bup_disp_post,
+SUM(n_9) as Number_of_BUP_DISP_PRE, 
+SUM(n_11) as Number_of_BUP_PRESC_POST, 
+SUM(n_12) as Number_of_BUP_PRESC_PRE, 
+SUM(n_47) as Number_of_methadone_disp_post,
+SUM(n_49) as Number_of_methadone_DISP_PRE, 
+SUM(n_51) as Number_of_methadone_PRESC_POST, 
+SUM(n_52) as Number_of_methadone_PRESC_PRE,
+SUM(n_62) as Number_of_NALTREX_disp_post,
+SUM(n_64) as Number_of_NALTREX_DISP_PRE, 
+SUM(n_66) as Number_of_NALTREX_PRESC_POST, 
+SUM(n_67) as Number_of_NALTREX_PRESC_PRE
+FROM old.sum_chronic_opioid
+GROUP BY race, sex, hispanic, agegrp1;
+QUIT;
+%export(mat_chronic_opioid);
+PROC SQL noprint;
+CREATE TABLE NEW.mat_OUD AS
+SELECT race, sex, hispanic, agegrp1,
+SUM(n_7) as Number_of_bup_disp_post,
+SUM(n_9) as Number_of_BUP_DISP_PRE, 
+SUM(n_11) as Number_of_BUP_PRESC_POST, 
+SUM(n_12) as Number_of_BUP_PRESC_PRE, 
+SUM(n_47) as Number_of_methadone_disp_post,
+SUM(n_49) as Number_of_methadone_DISP_PRE, 
+SUM(n_51) as Number_of_methadone_PRESC_POST, 
+SUM(n_52) as Number_of_methadone_PRESC_PRE,
+SUM(n_62) as Number_of_NALTREX_disp_post,
+SUM(n_64) as Number_of_NALTREX_DISP_PRE, 
+SUM(n_66) as Number_of_NALTREX_PRESC_POST, 
+SUM(n_67) as Number_of_NALTREX_PRESC_PRE
+FROM old.sum_OUD
+GROUP BY race, sex, hispanic, agegrp1;
+QUIT;
+%export(mat_OUD);
+PROC SQL noprint;
+CREATE TABLE NEW.mat_overdose AS
+SELECT race, sex, hispanic, agegrp1,
+SUM(n_7) as Number_of_bup_disp_post,
+SUM(n_9) as Number_of_BUP_DISP_PRE, 
+SUM(n_11) as Number_of_BUP_PRESC_POST, 
+SUM(n_12) as Number_of_BUP_PRESC_PRE, 
+SUM(n_47) as Number_of_methadone_disp_post,
+SUM(n_49) as Number_of_methadone_DISP_PRE, 
+SUM(n_51) as Number_of_methadone_PRESC_POST, 
+SUM(n_52) as Number_of_methadone_PRESC_PRE,
+SUM(n_62) as Number_of_NALTREX_disp_post,
+SUM(n_64) as Number_of_NALTREX_DISP_PRE, 
+SUM(n_66) as Number_of_NALTREX_PRESC_POST, 
+SUM(n_67) as Number_of_NALTREX_PRESC_PRE
+FROM old.sum_overdose
+GROUP BY race, sex, hispanic, agegrp1;
+QUIT;
+%export(mat_overdose);
+
+/*How often are clinicians co-prescribing naloxone with opioids?*/
+
+PROC SQL noprint;
+CREATE TABLE NEW.opioid_naloxone AS
+SELECT SUM(n_19) as Number_of_coprescribe_opioid_nlx,eventyear
+FROM old.sum_opioid_exposure
+GROUP BY eventyear;
+QUIT;
+%export(opioid_naloxone);
+
+/*Frequency of naloxone prescribing by year */
+PROC SQL noprint;
+CREATE TABLE NEW.naloxone_prescription AS
+SELECT SUM(n_19) as Number_of_naloxone_prescription,eventyear
+FROM old.sum_binary
+GROUP BY eventyear;
+QUIT;
+%export(opioid_naloxone);
