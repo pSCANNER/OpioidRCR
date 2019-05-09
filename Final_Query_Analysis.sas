@@ -15,7 +15,7 @@ proc contents data=OLD.&dataset out=vars(keep=name type) noprint;
 run; 
 data vars;                                                
    set vars;                                                 
-   if type=2 and name not in ("site","facility_location","race","sex","hispanic","AGEGRP1","eventyear") ;                               
+    if type=2 and name not in ("SITE","FACILITY_LOCATION","RACE","SEX","HISPANIC","AGEGRP1","EVENTYEAR") ;     
    newname=trim(left(name))||"_n"; 
 run;                                                                              
 proc sql noprint;                                         
