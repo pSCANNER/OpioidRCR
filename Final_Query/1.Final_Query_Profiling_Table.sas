@@ -1,3 +1,7 @@
+/*This file refers to task- 
+Write and publish the SAS/SQL program to Join OMOP Terminology Descriptions on codes from Profiling Data Sets
+*/
+
 LIBNAME old "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\AggregateData";
 LIBNAME new "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\UpdatedAggregateData";
 %LET oldpath=C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\AggregateData\;
