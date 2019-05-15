@@ -48,20 +48,21 @@ RUN;
 %import (sum_opioid_exposure.csv,sum_opioid_exposure);
 %import (sum_chronic_opioid.csv,sum_chronic_opioid);
 %import (sum_overdose.csv,sum_overdose);
+
 /*Table indicating extend OUD population reflect co-morbid mental illness (primary list) recommendation to look at any year vs 1 year prior and 
 what are the demographic characteristics of the dual diagnosis population (age, gender, race, ethnicity) */
 
 PROC SQL noprint;
 CREATE TABLE NEW.oud_mhpri_any_prior AS
-SELECT race, sex, hispanic, agegrp1, SUM(n_57) as Number_of_comorbid_oud_mhpri, SUM(n_57)/SUM(n) as Percent_of_comorbid_oud_mhpri
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_57) as Number_of_comorbid_oud_mhpri, SUM(n_57)/SUM(n) as Percent_of_comorbid_oud_mhpri
 FROM old.sum_oud
-GROUP BY race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 PROC SQL noprint;
 CREATE TABLE NEW.oud_mhpri_year_prior AS
-SELECT race, sex, hispanic, agegrp1,SUM(n_58) as Number_of_comorbid_oud_mhpri, SUM(n_58)/SUM(n) as Percent_of_comorbid_oud_mhpri
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear,SUM(n_58) as Number_of_comorbid_oud_mhpri, SUM(n_58)/SUM(n) as Percent_of_comorbid_oud_mhpri
 FROM old.sum_oud
-GROUP BY race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 %export(oud_mhpri_year_prior);
 %export(oud_mhpri_any_prior);
@@ -70,15 +71,15 @@ QUIT;
 what are the demographic characteristics of the dual diagnosis population (age, gender, race, ethnicity) */
 PROC SQL noprint;
 CREATE TABLE NEW.oud_mhexp_any_prior AS
-SELECT race, sex, hispanic, agegrp1, SUM(n_55) as Number_of_comorbid_oud_mhexp, SUM(n_55)/SUM(n) as Percent_of_comorbid_oud_mhexp
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_55) as Number_of_comorbid_oud_mhexp, SUM(n_55)/SUM(n) as Percent_of_comorbid_oud_mhexp
 FROM old.sum_oud
-GROUP BY race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 PROC SQL noprint;
 CREATE TABLE NEW.oud_mhexp_year_prior AS
-SELECT race, sex, hispanic, agegrp1, SUM(n_56) as Number_of_comorbid_oud_mhexp, SUM(n_56)/SUM(n) as Percent_of_comorbid_oud_mhexp
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_56) as Number_of_comorbid_oud_mhexp, SUM(n_56)/SUM(n) as Percent_of_comorbid_oud_mhexp
 FROM old.sum_oud
-GROUP BY race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 %export(oud_mhexp_year_prior);
 %export(oud_mhexp_any_prior);
@@ -88,60 +89,60 @@ cocaine use disorder, other stimulant use disorder, inhalant use disorder, sedat
 and what are the demographic (age, gender, race, ethnicity) and geographic characteristics) of the polysubstance abuse population?*/
 PROC SQL noprint;
 CREATE TABLE NEW.oud_aud_any_prior AS
-SELECT facility_location,race, sex, hispanic, agegrp1, SUM(n_2) as  Number_of_cooccur_oud_aud, SUM(n_2)/SUM(n) as Percent_of_cooccur_oud_aud
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_2) as  Number_of_cooccur_oud_aud, SUM(n_2)/SUM(n) as Percent_of_cooccur_oud_aud
 FROM old.sum_oud
-GROUP BY facility_location,race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 PROC SQL noprint;
 CREATE TABLE NEW.oud_aud_year_prior AS
-SELECT facility_location,race, sex, hispanic, agegrp1,SUM(n_3) as Number_of_cooccur_oud_aud, SUM(n_3)/SUM(n) as Percent_of_cooccur_oud_aud
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_3) as Number_of_cooccur_oud_aud, SUM(n_3)/SUM(n) as Percent_of_cooccur_oud_aud
 FROM old.sum_oud
-GROUP BY facility_location,race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 %export(oud_aud_year_prior);
 %export(oud_aud_any_prior);
 
 PROC SQL noprint;
 CREATE TABLE NEW.oud_cannabis_any_prior AS
-SELECT facility_location, race, sex, hispanic, agegrp1,SUM(n_23) as Number_of_cooccur_oud_cannabis, SUM(n_23)/SUM(n) as Percent_of_cooccur_oud_cannabis
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear,SUM(n_23) as Number_of_cooccur_oud_cannabis, SUM(n_23)/SUM(n) as Percent_of_cooccur_oud_cannabis
 FROM old.sum_oud
-GROUP BY facility_location, race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 PROC SQL noprint;
 CREATE TABLE NEW.oud_cannabis_year_prior AS
-SELECT facility_location,race, sex, hispanic, agegrp1, SUM(n_24) as Number_of_cooccur_oud_cannabis, SUM(N_24)/SUM(n) as Percent_of_cooccur_oud_cannabis
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_24) as Number_of_cooccur_oud_cannabis, SUM(N_24)/SUM(n) as Percent_of_cooccur_oud_cannabis
 FROM old.sum_oud
-GROUP BY facility_location,race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 %export(oud_cannabis_year_prior);
 %export(oud_cannabis_any_prior);
 
 PROC SQL noprint;
 CREATE TABLE NEW.oud_inhalent_any_prior AS
-SELECT facility_location, race, sex, hispanic, agegrp1, SUM(n_46) as Number_of_cooccur_oud_inhalent, SUM(n_46)/SUM(n) as Percent_of_cooccur_oud_inhalent
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_46) as Number_of_cooccur_oud_inhalent, SUM(n_46)/SUM(n) as Percent_of_cooccur_oud_inhalent
 FROM old.sum_oud
-GROUP BY facility_location,race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 PROC SQL noprint;
 CREATE TABLE NEW.oud_inhalent_year_prior AS
-SELECT facility_location, race, sex, hispanic, agegrp1,SUM(n_48) as Number_of_cooccur_oud_inhalent,SUM(n_48)/SUM(n) as Percent_of_cooccur_oud_inhalent
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear,SUM(n_48) as Number_of_cooccur_oud_inhalent,SUM(n_48)/SUM(n) as Percent_of_cooccur_oud_inhalent
 FROM old.sum_oud
-GROUP BY facility_location,race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 %export(oud_inhalent_year_prior);
 %export(oud_inhalent_any_prior);
 
 PROC SQL noprint;
 CREATE TABLE NEW.oud_hallucinogen_any_prior AS
-SELECT facility_location,race, sex, hispanic, agegrp1, SUM(n_38) as Number_of_cooccur_oud_hlcg, SUM(n_38)/SUM(n) as Percent_of_cooccur_oud_hlcg
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_38) as Number_of_cooccur_oud_hlcg, SUM(n_38)/SUM(n) as Percent_of_cooccur_oud_hlcg
 FROM old.sum_oud
-GROUP BY facility_location,race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 PROC SQL noprint;
 CREATE TABLE NEW.oud_hallucinogen_year_prior AS
-SELECT facility_location,race, sex, hispanic, agegrp1,SUM(n_40) as Number_of_cooccur_oud_hlcg, SUM(n_40)/SUM(n) as Percent_of_cooccur_oud_hlcg 
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear,SUM(n_40) as Number_of_cooccur_oud_hlcg, SUM(n_40)/SUM(n) as Percent_of_cooccur_oud_hlcg 
 FROM old.sum_oud
-GROUP BY facility_location,race, sex, hispanic, agegrp1;
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 %export(oud_hallucinogen_year_prior);
 %export(oud_hallucinogen_any_prior);
