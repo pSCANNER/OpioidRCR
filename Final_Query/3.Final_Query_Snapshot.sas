@@ -1,3 +1,7 @@
+/*This file refers to task-
+Snapshot of key populations with descriptive statistics (see below section on summary tables for proposed snapshots with various requests for clarification) 
+*/
+
 LIBNAME old "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\AggregateData";
 LIBNAME new "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\UpdatedAggregateData";
 LIBNAME den1 "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\UpdatedAggregateData\Snapshots\opioid_exposure";
