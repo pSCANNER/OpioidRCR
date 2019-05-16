@@ -118,19 +118,27 @@ QUIT;
 %export(oud_cannabis_any_prior);
 
 PROC SQL noprint;
-CREATE TABLE NEW.oud_inhalent_any_prior AS
-SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_46) as Number_of_cooccur_oud_inhalent, SUM(n_46)/SUM(n) as Percent_of_cooccur_oud_inhalent
+CREATE TABLE NEW.oud_cocaine_year_prior AS
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_24) as Number_of_cooccur_oud_cocaine, SUM(N_24)/SUM(n) as Percent_of_cooccur_oud_cocaine
+FROM old.sum_oud
+GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
+QUIT;
+%export(oud_cannabis_year_prior);
+%export(oud_cannabis_any_prior);
+PROC SQL noprint;
+CREATE TABLE NEW.oud_cocaine_any_prior AS
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear, SUM(n_26) as Number_of_cooccur_oud_cocaine, SUM(n_26)/SUM(n) as Percent_of_cooccur_oud_cocaine
 FROM old.sum_oud
 GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
 PROC SQL noprint;
 CREATE TABLE NEW.oud_inhalent_year_prior AS
-SELECT facility_location,race, sex, hispanic, agegrp1,eventyear,SUM(n_48) as Number_of_cooccur_oud_inhalent,SUM(n_48)/SUM(n) as Percent_of_cooccur_oud_inhalent
+SELECT facility_location,race, sex, hispanic, agegrp1,eventyear,SUM(n_27) as Number_of_cooccur_oud_inhalent,SUM(n_27)/SUM(n) as Percent_of_cooccur_oud_inhalent
 FROM old.sum_oud
 GROUP BY facility_location,race, sex, hispanic, agegrp1,eventyear;
 QUIT;
-%export(oud_inhalent_year_prior);
-%export(oud_inhalent_any_prior);
+%export(oud_cocaine_year_prior);
+%export(oud_cocaine_any_prior);
 
 PROC SQL noprint;
 CREATE TABLE NEW.oud_hallucinogen_any_prior AS
@@ -178,7 +186,7 @@ SUM(n_67)/SUM(n) as Percent_of_NALTREX_PRESC_PRE
 FROM old.sum_opioid_exposure
 GROUP BY race, sex, hispanic, agegrp1;
 QUIT;
-
+%export(mat_opioid_exposure);
 PROC SQL noprint;
 CREATE TABLE NEW.mat_chronic_opioid AS
 SELECT race, sex, hispanic, agegrp1,
@@ -205,7 +213,7 @@ SUM(n_64)/SUM(n) as Percent_of_NALTREX_DISP_PRE,
 SUM(n_66) as Number_of_NALTREX_PRESC_POST, 
 SUM(n_66)/SUM(n) as Percent_of_NALTREX_PRESC_POST,
 SUM(n_67) as Number_of_NALTREX_PRESC_PRE,
-SUM(n_67)/SUM(n) as Percent_of_NALTREX_PRESC_PRE,
+SUM(n_67)/SUM(n) as Percent_of_NALTREX_PRESC_PRE
 FROM old.sum_chronic_opioid
 GROUP BY race, sex, hispanic, agegrp1;
 QUIT;
@@ -214,17 +222,29 @@ PROC SQL noprint;
 CREATE TABLE NEW.mat_OUD AS
 SELECT race, sex, hispanic, agegrp1,
 SUM(n_7) as Number_of_bup_disp_post,
+SUM(n_7)/SUM(n) as Percent_of_bup_disp_post,
 SUM(n_9) as Number_of_BUP_DISP_PRE, 
+SUM(n_9)/SUM(n) as Percent_of_BUP_DISP_PRE,
 SUM(n_11) as Number_of_BUP_PRESC_POST, 
+SUM(n_11)/SUM(n) as Percent_of_BUP_PRESC_POST,
 SUM(n_12) as Number_of_BUP_PRESC_PRE, 
+SUM(n_12)/SUM(n) as Percent_of_BUP_PRESC_PRE,
 SUM(n_47) as Number_of_methadone_disp_post,
+SUM(n_47)/SUM(n) as Percent_of_methadone_disp_post,
 SUM(n_49) as Number_of_methadone_DISP_PRE, 
+SUM(n_49)/SUM(n) as Percent_of_methadone_DISP_PRE,
 SUM(n_51) as Number_of_methadone_PRESC_POST, 
+SUM(n_51)/SUM(n) as Percent_of_methadone_PRESC_POST,
 SUM(n_52) as Number_of_methadone_PRESC_PRE,
+SUM(n_52)/SUM(n) as Percent_of_methadone_PRESC_PRE,
 SUM(n_62) as Number_of_NALTREX_disp_post,
+SUM(n_62)/SUM(n) as Percent_of_NALTREX_disp_post,
 SUM(n_64) as Number_of_NALTREX_DISP_PRE, 
+SUM(n_64)/SUM(n) as Percent_of_NALTREX_DISP_PRE,
 SUM(n_66) as Number_of_NALTREX_PRESC_POST, 
-SUM(n_67) as Number_of_NALTREX_PRESC_PRE
+SUM(n_66)/SUM(n) as Percent_of_NALTREX_PRESC_POST,
+SUM(n_67) as Number_of_NALTREX_PRESC_PRE,
+SUM(n_67)/SUM(n) as Percent_of_NALTREX_PRESC_PRE
 FROM old.sum_OUD
 GROUP BY race, sex, hispanic, agegrp1;
 QUIT;
@@ -254,7 +274,7 @@ SUM(n_64) as Number_of_NALTREX_DISP_PRE,
 SUM(n_64)/SUM(n) as Percent_of_NALTREX_DISP_PRE,
 SUM(n_66) as Number_of_NALTREX_PRESC_POST, 
 SUM(n_66)/SUM(n) as Percent_of_NALTREX_PRESC_POST,
-SUM(n_67) as Number_of_NALTREX_PRESC_PRE
+SUM(n_67) as Number_of_NALTREX_PRESC_PRE,
 SUM(n_67)/SUM(n) as Percent_of_NALTREX_PRESC_PRE
 FROM old.sum_overdose
 GROUP BY race, sex, hispanic, agegrp1;
@@ -265,7 +285,7 @@ QUIT;
 
 PROC SQL noprint;
 CREATE TABLE NEW.opioid_naloxone AS
-SELECT eventyear,SUM(n_19) as Number_of_coprescribe_opioid_nlx,SUM(n_19)/SUM(n) as Percent_of_coprescribe_opioid_nlx
+SELECT eventyear,SUM(n_19) as Number_of_coprescribe_opioid_nlx,SUM(n_19)/SUM(n) as Percent_of_opioid_nlx
 FROM old.sum_opioid_exposure
 GROUP BY eventyear;
 QUIT;
@@ -278,4 +298,4 @@ SELECT eventyear, SUM(n_19) as Number_of_naloxone_prescription,SUM(n_19)/SUM(n) 
 FROM old.sum_binary
 GROUP BY eventyear;
 QUIT;
-%export(opioid_naloxone);
+%export(naloxone_prescription);
