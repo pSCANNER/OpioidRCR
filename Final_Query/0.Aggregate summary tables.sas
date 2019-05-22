@@ -1,4 +1,5 @@
 /*This program is used for pre-processing summary tables and fixing errors of mis-matching.*/
+
 options obs=max macrogen symbolgen mprint noxsync noxwait 
         source2 nofmterr ls=256 ps=68 ;
 
@@ -20,7 +21,7 @@ libname psh "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\O
 libname tu "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\C11 - Temple University DataMart NEW\RCROPI_ahr_wp001_nsd1_v03_2019\drnoc";
 libname upmc "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\C11 - University of Pittsburgh Medical Center DataMart NEW\RCROPI_ahr_wp001_nsd1_v03_2019";
 libname upmc2 "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\C11 - UPMC Claims DataMart NEW\RCROPI_ahr_wp001_nsd1_v03_2019";
-libname final "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\Qiaohong_Aggregate_Data";
+libname final "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\Clean_Summary_Tables";
 %macro drp(ds);
 data data1;
  set &ds;
@@ -299,3 +300,105 @@ set final.adv_sum_provider final.usc_sum_provider /*final.ucd_sum_provider*/ fin
 final.ucsd_sum_provider final.vav_sum_provider final.uu_sum_provider final.bay_sum_provider final.lsu_sum_provider final.nyc_sum_provider  final.jhu_sum_provider 
 final.psh_sum_provider final.tu_sum_provider final.upmc_sum_provider final.upmc2_sum_provider;
 run;
+
+
+
+
+
+/*SUM_BINARY*/
+%macro clean(input,output,site);
+data org;
+retain keyx;
+set &input;
+length keyx	 $ 400;
+label keyx = 'Keys';
+keyx = strip(Facility_Location)|| '-' ||
+       strip(BINARY_RACE)|| '-' ||
+	   strip(BINARY_SEX)|| '-' ||
+	   strip(BINARY_HISPANIC)|| '-' ||
+	   strip(put(EventYear, z4.));
+run;
+
+proc sql noprint;
+create table mt as
+select varnum    as varorder
+      ,name      as varname
+	  ,type      as vartype
+	  ,length    as varlength
+	  ,label     as varlabel
+  from dictionary.columns
+ where libname = 'WORK'
+   and memname = 'ORG';
+quit;
+
+data keys(keep = keyx Facility_Location Binary_Race Binary_Sex Binary_Hispanic EventYear mean_age n)
+     data_n(keep = keyx n_1 - n_110)
+     data_nm(keep = keyx nm_1 - nm_110);
+set org;
+run;
+
+
+%drp(data_n);
+%drp(data_nm);
+
+proc sort data = keys;
+     by keyx;
+run;
+
+data final(drop=keyx);
+merge keys(in=a)
+      data_n0(in=b)
+	  data_nm0(in=c);
+   by keyx;
+   if a;
+run;
+proc sql noprint;
+create table final.&output as
+select "&site" as site,*
+from final;
+quit;
+proc sql noprint;
+create table check_&output as
+select varnum    as varorder  
+      ,name      as varname_&site label="variable_name_&site"
+	  ,label     as varlabel_&site label="label_name_&site"
+  from dictionary.columns
+ where libname = 'FINAL'
+   and memname = upcase("&output")
+order by varorder;
+quit;
+%mend clean;
+%macro report(sumtable);
+%clean(usc.&sumtable,usc_&sumtable,C3USC);
+%clean(ucd.&sumtable,ucd_&sumtable,C3UCD);
+%clean(ucla.&sumtable,ucla_&sumtable,C3UCLA);
+%clean(cs.&sumtable,cs_&sumtable,C3CS);
+%clean(sm.&sumtable,sm_&sumtable,C3SM);
+%clean(uci.&sumtable,uci_&sumtable,C3UCI);
+%clean(ucsd.&sumtable,ucsd_&sumtable,C3UCSD);
+%clean(vav.&sumtable,vav_&sumtable,C3VAV);
+%clean(uu.&sumtable,uu_&sumtable,C4UU);
+%clean(bay.&sumtable,bay_&sumtable,C6BAY);
+%clean(lsu.&sumtable,lsu_&sumtable,C6LSU);
+%clean(nyc.&sumtable,nyc_&sumtable,C8NYC);
+%clean(advance.&sumtable,adv_&sumtable,C10ADVANCE);
+%clean(jhu.&sumtable,jhu_&sumtable,C11JHU);
+%clean(psh.&sumtable,psh_&sumtable,C11PSH);
+%clean(tu.&sumtable,tu_&sumtable,C11TU);
+%clean(upmc.&sumtable,upmc_&sumtable,C11UPMC);
+%clean(upmc2.&sumtable,upmc2_&sumtable,C11UPMC2); 
+
+data final.check_&sumtable;
+merge check_usc_&sumtable check_ucd_&sumtable check_ucla_&sumtable check_cs_&sumtable check_sm_&sumtable check_uci_&sumtable check_ucsd_&sumtable check_vav_&sumtable
+check_uu_&sumtable check_bay_&sumtable check_lsu_&sumtable check_nyc_&sumtable check_adv_&sumtable check_jhu_&sumtable check_psh_&sumtable check_tu_&sumtable
+check_upmc_&sumtable check_upmc2_&sumtable;
+by varorder;
+run;
+
+data final.&sumtable;
+set final.adv_&sumtable final.usc_&sumtable final.ucd_&sumtable final.ucla_&sumtable final.cs_&sumtable final.sm_&sumtable final.uci_&sumtable final.ucsd_&sumtable 
+final.vav_&sumtable final.uu_&sumtable final.bay_&sumtable final.lsu_&sumtable final.nyc_&sumtable  final.jhu_&sumtable final.psh_&sumtable final.tu_&sumtable 
+final.upmc_&sumtable final.upmc2_&sumtable;
+run;
+%mend report;
+%report(sum_binary);
