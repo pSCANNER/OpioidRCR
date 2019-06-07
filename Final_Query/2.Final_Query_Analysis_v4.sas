@@ -1,4 +1,4 @@
-*2.Final_Query_Analysis, piggyback off of Qiaohong's code with some minor tweaks;
+*2.Final_Query_Analysis, updated variable names;
 
 LIBNAME old "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\Clean_Summary_Tables\AggregateSummaryTable-v2-no Ts";
 LIBNAME new "C:\Users\Qiaohong Hu\OneDrive - University of Southern California\Opioid RCR\UpdatedAggregateData\Final_Query_v4\analysis_results";
