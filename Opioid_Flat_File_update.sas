@@ -583,9 +583,9 @@ PROC SQL inobs=max;
 	(
 		select PE.PATID
 			, PE.EventYear
-			, CASE WHEN (MH.Code IS NOT NULL AND MH.Code_Subset = 'Primary' AND year(Dx.ADMIT_DATE) = PE.EventYear THEN 1 ELSE 0
+			, CASE WHEN (MH.Code IS NOT NULL AND MH.Code_Subset = 'Primary' AND year(Dx.ADMIT_DATE) = PE.EventYear) THEN 1 ELSE 0
 				END AS MH_Dx_Pri_CY
-			, CASE WHEN (MH.Code IS NOT NULL AND MH.Code_Subset = 'Exploratory' AND year(Dx.ADMIT_DATE) = PE.EventYear THEN 1 ELSE 0
+			, CASE WHEN (MH.Code IS NOT NULL AND MH.Code_Subset = 'Exploratory' AND year(Dx.ADMIT_DATE) = PE.EventYear) THEN 1 ELSE 0
 				END AS MH_Dx_Exp_CY
 		from indata.diagnosis AS Dx
 			join infolder.mentalhealth as MH 
@@ -741,13 +741,6 @@ group by PE.PATID, PE.EventYear
 RUN;
 QUIT;
 
-
-*test;
-proc sql;
-	create table dmlocal.test as
-	select patid, eventyear, Substance_UD_Any_everCY, Opioid_UD_Any_everCY, OUD_SUD_everCY
-	from dmlocal.substance_use_do_events;
-quit;
 
 
 * Create SAS data file rcr.hepb_events;
@@ -1453,9 +1446,11 @@ from dmlocal.patientevents as PE		/* handle missing patients */
 ON PE.PATID = OD.PATID
 group by PE.PATID, PE.EventYear
 ;
+QUIT;
 
 
 * Create SAS data file dmlocal.fatal_od;
+*new variables added: NONFATAL_OD_CY;
 PROC SQL inobs=max;
 CREATE TABLE dmlocal.fatal_od as
 select PY.PATID
@@ -1464,6 +1459,11 @@ select PY.PATID
 		when E.PATID is not NULL then 1
 		else 0
 		end) as FATAL_OVERDOSE
+	, max(case when D.DEATH_DATE is NULL or D.DEATH_DATE > DIAG.ADMIT_DATE then 1
+		when D.DEATH_DATE is NULL or D.DEATH_DATE > E.DISCHARGE_DATE then 1
+		when E.PATID is not NULL then 1
+		else 0
+		end) as NONFATAL_OD_CY /*new*/
 from indata.diagnosis as DIAG
 	JOIN infolder.opioidoverdose OD
 		ON DIAG.DX_TYPE = OD.Dx_TYPE AND DIAG.DX = OD.Code
@@ -1565,6 +1565,7 @@ QUIT;
 
 
 * Create SAS data file dmlocal.chronic_opioids;
+*new variables added:  CHRONIC_OPIOID_CY, CHRONIC_OPIOID_everCY;
 PROC SQL inobs=max;
 CREATE TABLE dmlocal.chronic_opioids as
 select PY.PATID, PY.EventYear
@@ -1580,6 +1581,10 @@ select PY.PATID, PY.EventYear
 	, case when PO_Cur.Prescribing_Qty >= 3 or DO_Cur.Dispensing_Qty >= 3
 			or PO_Prior.Prescribing_Qty >= 3 or DO_Prior.Dispensing_Qty >= 3 then 1 else 0
 		end as CHRONIC_OPIOID_CURRENT_PRIOR
+	, case when calculated CHRONIC_OPIOID_DATE is not null and year(calculated CHRONIC_OPIOID_DATE)=PY.EventYear then 1 else 0
+		end as CHRONIC_OPIOID_CY /*new*/
+	, case when calculated CHRONIC_OPIOID_DATE is not null and year(calculated CHRONIC_OPIOID_DATE)<=PY.EventYear then 1 else 0
+		end as CHRONIC_OPIOID_everCY /*new*/
 from dmlocal.patientyears as PY
 	left join dmlocal.prescribing_chronic_opioids as PO_Cur
 		on PY.PATID = PO_Cur.PATID
@@ -1600,14 +1605,15 @@ QUIT;
 
 
 * Create SAS data file dmlocal.opioid_flat_file;
-*new variables added: MAT_ANY_CY, MAT_ANY_everCY, HIV_HBV_HBC_CY, HIV_HBV_HBC_everCY ;
+*new variables added: MAT_ANY_CY, MAT_ANY_everCY, HIV_HBV_HBC_CY, HIV_HBV_HBC_everCY, state, ANY_ENC_CY, GL_A_DENOM_FOR_ST, GL_B_DENOM_FOR_ST, CANCER_PX_CURRENT_YEAR,
+	BUP_ANY_CY, NALTREX_ANY_CY;
 data sites;
 format DataMartID $20.;
 %LET DataMartID=compress("&DMID.&SITEID.");
 run;
 
 PROC SQL inobs=max;
-  CREATE TABLE dmlocal.opioid_flat_file AS
+  CREATE TABLE dmlocal.opioid_flat_file_pre AS
   SELECT &DataMartID as DataMartID
 	, DEMO.*
 	, case when DEMO.DEATH_DATE IS NOT NULL 
@@ -1662,9 +1668,9 @@ PROC SQL inobs=max;
 		when IP_Visit_Years.PATID is not NULL then 1
 		else 0
 		end as ED_IP_YR
-	, CA_DX.Cancer_AnyEncount_Dx_Year_Prior
+	, CA_DX.Cancer_AnyEncount_Dx_Year_Prior as Cancer_AnyEnc_Dx_Year_Prior /*rename due to length*/
 	, CA_DX.Cancer_Inpt_Dx_Year_Prior
-	, CA_PROC.Chemo_AnyEncount_Year_Prior
+	, CA_PROC.Chemo_AnyEncount_Year_Prior 
 	, CA_PROC.Rad_AnyEncount_Year_Prior
 	, CASE
 		WHEN (CA_PROC.Chemo_AnyEncount_Year_Prior = 1
@@ -1704,9 +1710,9 @@ PROC SQL inobs=max;
 	, SUD.Cocaine_Use_DO_Year_Prior
 	, SUD.Cocaine_Use_DO_Any_Prior
 	, SUD.Cocaine_Use_DO_Post_Date
-	, SUD.Hallucinogen_Use_DO_Year_Prior
-	, SUD.Hallucinogen_Use_DO_Any_Prior
-	, SUD.Hallucinogen_Use_DO_Post_Date
+	, SUD.Hallucinogen_Use_DO_Year_Prior as Halluc_Use_DO_Year_Prior /*rename due to length*/
+	, SUD.Hallucinogen_Use_DO_Any_Prior as Halluc_Use_DO_Any_Prior /*rename due to length*/
+	, SUD.Hallucinogen_Use_DO_Post_Date as Halluc_Use_DO_Post_Date /*rename due to length*/
 	, SUD.Inhalant_Use_DO_Year_Prior
 	, SUD.Inhalant_Use_DO_Any_Prior
 	, SUD.Inhalant_Use_DO_Post_Date
@@ -1784,9 +1790,11 @@ PROC SQL inobs=max;
 	, SMOK.SMOKING
 	, CHRON_OP.CHRONIC_OPIOID_DATE
 	, CHRON_OP.CHRONIC_OPIOID
-	, CHRON_OP.CHRONIC_OPIOID_CURRENT_PRIOR
-	, CA_PROC_CY.Cancer_AnyEncount_CY /*new*/
-	, CA_PROC_CY.Cancer_Inpt_Dx_CY /*new*/
+	, CHRON_OP.CHRONIC_OPIOID_CURRENT_PRIOR as CHRONIC_OPIOID_CURR_PRIOR /*rename due to length*/
+	, CA_DX_CY.Cancer_AnyEncount_CY /*new*/
+	, CA_DX_CY.Cancer_Inpt_Dx_CY /*new*/
+	, CA_PROC_CY.Chemo_AnyEncount_CY /*new*/
+	, CA_PROC_CY.Rad_AnyEncount_CY /*new*/
 	, SUD.Cannabis_UD_Any_CY /*new*/
 	, SUD.Cocaine_UD_Any_CY /*new*/
 	, SUD.Other_Stim_UD_Any_CY /*new*/
@@ -1819,10 +1827,20 @@ PROC SQL inobs=max;
 	, METH_CY.METHADONE_ANY_CY /*new*/
 	, OD.OD_CY /*new*/
 	, OD.ED_OD_CY /*new*/
-	, max(BUP_CY.BUP_DISP_CY, NALTREX_CY.NALTREX_DISP_CY) as MAT_ANY_CY /*new*/
-	, max(BUP_CY.BUP_DISP_everCY, NALTREX_CY.NALTREX_DISP_everCY) as MAT_ANY_everCY /*new*/
+	, max(BUP_CY.BUP_DISP_CY, BUP_CY.BUP_PRESC_CY, NALTREX_CY.NALTREX_DISP_CY, NALTREX_CY.NALTREX_PRESC_CY) as MAT_ANY_CY /*new*/
+	, max(BUP_CY.BUP_DISP_everCY, BUP_CY.BUP_PRESC_everCY, NALTREX_CY.NALTREX_DISP_everCY, NALTREX_CY.NALTREX_PRESC_everCY) as MAT_ANY_everCY /*new*/
 	, max(HIV.HIV_Dx_Any_CY, HEPB.HepB_Dx_Any_CY, HEPC.HepC_Dx_Any_CY) as HIV_HBV_HBC_CY /*new*/
 	, max(HIV.HIV_Dx_Any_everCY, HEPB.HepB_Dx_Any_everCY, HEPC.HepC_Dx_Any_everCY) as HIV_HBV_HBC_everCY /*new*/
+	, max(BUP_CY.BUP_DISP_CY, BUP_CY.BUP_PRESC_CY) as BUP_ANY_CY /*new*/
+	, max(NALTREX_CY.NALTREX_DISP_CY, NALTREX_CY.NALTREX_PRESC_CY) as NALTREX_ANY_CY /*new*/
+	, zip.state /*new*/
+	, FATAL_OD.NONFATAL_OD_CY /*new*/
+	, CHRON_OP.CHRONIC_OPIOID_CY  /*new*/
+	, CHRON_OP.CHRONIC_OPIOID_everCY /*new*/
+	, case when DEMO.PATID=ENC_EVENT.PATID and DEMO.EventYear=ENC_EVENT.EventYear and ENC_EVENT.EventYear is not null then 1 else 0 end as ANY_ENC_CY /*new*/
+	, case when CA_DX_CY.Cancer_AnyEncount_CY=1 then 1 else 0 end as GL_A_DENOM_FOR_ST /*new*/
+	, case when CA_PROC_CY.Chemo_AnyEncount_CY=1 or CA_PROC_CY.Rad_AnyEncount_CY=1 then 1 else 0 end as CANCER_PX_CURRENT_YEAR /*new*/
+	, case when CA_DX_CY.Cancer_Inpt_Dx_CY=1 and calculated CANCER_PX_CURRENT_YEAR=1 then 1 else 0 end as GL_B_DENOM_FOR_ST /*new*/
   FROM dmlocal.patientevents as EVNTS
   LEFT JOIN dmlocal.patientdemo as DEMO
   ON DEMO.PATID = EVNTS.PATID AND DEMO.EventYear = EVNTS.EventYear
@@ -1881,6 +1899,8 @@ PROC SQL inobs=max;
 		on DEMO.PATID = CHRON_OP.PATID and DEMO.EventYear = CHRON_OP.EventYear
 	left join dmlocal.cancer_proc_events_cy as CA_PROC_CY
 		on DEMO.PATID = CA_PROC_CY.PATID AND DEMO.EventYear = CA_PROC_CY.EventYear
+	left join dmlocal.cancer_dx_events_cy as CA_DX_CY
+		on DEMO.PATID = CA_DX_CY.PATID AND DEMO.EventYear = CA_DX_CY.EventYear
 	left join dmlocal.mental_health_events_cy as MH_CY
 		ON DEMO.PATID = MH_CY.PATID AND DEMO.EventYear = MH_CY.EventYear
 	left join dmlocal.bup_events_cy as BUP_CY
@@ -1889,7 +1909,41 @@ PROC SQL inobs=max;
 		on DEMO.PATID = NALTREX_CY.PATID and DEMO.EventYear = NALTREX_CY.EventYear
 	left join dmlocal.methadone_events_cy as METH_CY
 		on DEMO.PATID = METH_CY.PATID and DEMO.EventYear = METH_CY.EventYear
+	left join dmlocal.zipcode as ZIP
+		on DEMO.FACILITY_LOCATION = ZIP.zip 
+	left join dmlocal.encounter_events as ENC_EVENT
+		on DEMO.PATID = ENC_EVENT.PATID and DEMO.EventYear = ENC_EVENT.EventYear
 WHERE DEMO.AgeAsOfJuly1 >= 0  
   ;
 RUN;
 QUIT;
+*;
+
+
+*use data within PCORNET enrollment dates;
+*if the number of observations do not diminish, should code for the XX_everCY here;
+proc sql;
+	create table dmlocal.opioid_flat_file as
+	select a.*, b.ENR_START_DATE, b.ENR_END_DATE
+	from dmlocal.opioid_flat_file_pre a
+	left join
+	(select * from indata.enrollment) b
+	on a.patid=b.patid
+	where a.eventyear >= year(b.NR_START_DATE) and a.eventyear <= year(b.ENR_END_DATE);
+quit;
+
+
+*need to check XX_CY and XX_everCY codes are being outputted correctly;
+*potentially will need to create new tables to code for XX_everCY;
+*Need to check if observatiosn were removed after enrollemnt query;
+*Double check encounter variable ANY_ENC_CY makes sense;
+*need to check if there are missing observations and need to change them to 0;
+
+
+
+
+	
+	
+	
+	
+	
