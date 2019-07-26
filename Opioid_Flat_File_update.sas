@@ -1944,6 +1944,9 @@ quit;
 * Pull all of the varibles that have TYPE BINARY names from PROC CONTENTS
 
 /*
+replace Encounter_events with flat file.
+select the distinct demographic variables and year from the flat file. 
+will need to carry forward missing values for demographics and recalcualte agegroup.
 proc sql outobs=10;   
 
 select distinct EventYear from Rcr.Encounter_events;
@@ -1978,7 +1981,7 @@ left join enryr as enryr
 on flatfilename.year=enryr.dummyyear
 
 * update all binary variables to have value as binVal (can do this with a select as well)
-
+* update all the missing demographic variables to have the most recent value.
 */
 * FROM ENROLLMENT TABLE CREATE A DUMMY ENROLLMENT YEAR DATASET THAT HAS PATIENT ID YEAR FOR EVERY YEAR BETWEEN START AND END DATE
 * LEFT JOIN THE REST OF THE DATA ONTO THE ENROLLMENT DATA SET
