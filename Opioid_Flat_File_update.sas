@@ -1347,7 +1347,7 @@ order by PRESC.PATID, EventYear, PRESC.RX_ORDER_DATE, PRESC.RX_ORDER_TIME
 ;
 RUN;
 QUIT;
-
+* CREAT
 
 * Create SAS data file dmlocal.nalox_ambu_disp;
 PROC SQL inobs=max;
@@ -1391,7 +1391,7 @@ order by PY.PATID, PY.EventYear
 ;
 RUN;
 QUIT;
-
+* Create SAS data file for co-prescribing that captures same-day Naloxone-Opioid co-prescribing
 
 * Create SAS data file dmlocal.od_events;
 *new variables added: OD_CY, ED_OD_CY;
@@ -1941,10 +1941,10 @@ quit;
 
 
 * POST PROCESSING
-* Write Macro to pull all of the varibles that have TYPE BINARY names from PROC CONTENTS
+* Pull all of the varibles that have TYPE BINARY names from PROC CONTENTS
 * FROM ENROLLMENT TABLE CREATE A DUMMY ENROLLMENT YEAR DATASET THAT HAS PATIENT ID YEAR FOR EVERY YEAR BETWEEN START AND END DATE
 * LEFT JOIN THE REST OF THE DATA ONTO THE ENROLLMENT DATA SET
 
-	
+* CREATE VARIABLE LABELS FOR THE FLAT FILE	
 	
 	
