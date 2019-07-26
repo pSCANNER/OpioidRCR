@@ -1942,6 +1942,36 @@ quit;
 
 * POST PROCESSING
 * Pull all of the varibles that have TYPE BINARY names from PROC CONTENTS
+
+/*
+proc sql outobs=10;   
+
+select distinct EventYear from Rcr.Encounter_events;
+ create table years as   select distinct EventYear from Rcr.Encounter_events;
+
+ select distinct EventYear from Rcr.Encounter_events;
+create table patid as select distinct patid from Rcr.Encounter_events;
+
+select f1.EventYear , f2.patid from years as f1 cross join patid as f2;
+proc sql outobs=10;   select distinct EventYear from Rcr.Encounter_events;
+ create table years as   select distinct EventYear from Rcr.Encounter_events;
+
+ select distinct EventYear from Rcr.Encounter_events;
+create table patid as select distinct patid from Rcr.Encounter_events;
+           
+proc sql outobs=10000;
+
+create table enrollmentshell as
+select f1.EventYear as dummyyear , f2.patid, 0 as v
+from years as f1 cross join patid as f2;
+
+* fix this pseudocode
+create table enrollment as 
+select * from enrollment shell as e
+join indata.enrollment
+on year(enrollment)
+
+*/
 * FROM ENROLLMENT TABLE CREATE A DUMMY ENROLLMENT YEAR DATASET THAT HAS PATIENT ID YEAR FOR EVERY YEAR BETWEEN START AND END DATE
 * LEFT JOIN THE REST OF THE DATA ONTO THE ENROLLMENT DATA SET
 
