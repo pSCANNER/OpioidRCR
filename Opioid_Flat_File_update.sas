@@ -1962,14 +1962,22 @@ create table patid as select distinct patid from Rcr.Encounter_events;
 proc sql outobs=10000;
 
 create table enrollmentshell as
-select f1.EventYear as dummyyear , f2.patid, 0 as v
+select f1.EventYear as dummyyear , f2.patid, 0 as binVal
 from years as f1 cross join patid as f2;
 
-* fix this pseudocode
-create table enrollment as 
-select * from enrollment shell as e
-join indata.enrollment
-on year(enrollment)
+* fix this pseudocode that selects only enrolled years from shell
+create table enryr as 
+select * from enrollmentshell as e
+join indata.enrollment as enr
+on enr.patid=e.patid
+and e.dummyyear>year(enr.startdate) and
+and e.dummyyear>year(enr.enddate) 
+
+create table flatfile as select flat.*, enryr.* from flatfilename as flat
+left join enryr as enryr
+on flatfilename.year=enryr.dummyyear
+
+* update all binary variables to have value as binVal (can do this with a select as well)
 
 */
 * FROM ENROLLMENT TABLE CREATE A DUMMY ENROLLMENT YEAR DATASET THAT HAS PATIENT ID YEAR FOR EVERY YEAR BETWEEN START AND END DATE
