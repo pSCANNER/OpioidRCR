@@ -1940,10 +1940,11 @@ quit;
 *need to check if there are missing observations and need to change them to 0;
 
 
+* POST PROCESSING
+* Write Macro to pull all of the varibles that have TYPE BINARY names from PROC CONTENTS
+* FROM ENROLLMENT TABLE CREATE A DUMMY ENROLLMENT YEAR DATASET THAT HAS PATIENT ID YEAR FOR EVERY YEAR BETWEEN START AND END DATE
+* LEFT JOIN THE REST OF THE DATA ONTO THE ENROLLMENT DATA SET
 
-
-	
-	
 	
 	
 	
