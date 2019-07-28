@@ -220,7 +220,14 @@ QUIT;
 
 PROC SQL inobs=max;
   CREATE TABLE dmlocal.facility_select AS
-  SELECT PATID, YEAR(ADMIT_DATE) as EventYear, count(*) as Qty, ADMIT_DATE, FACILITY_LOCATION
+  SELECT PATID, YEAR(ADMIT_DATE) as EventYear, count(*) as Qty, ADMIT_DATE, FACILITY_
+  
+  
+  
+  
+  
+  
+  
   FROM indata.encounter
   WHERE FACILITY_LOCATION IS NOT NULL
   GROUP BY PATID, EventYear, FACILITY_LOCATION
@@ -2232,6 +2239,8 @@ proc sql;
 		when calculated AgeAsOfJuly1 >= 75 and calculated AgeAsOfJuly1 < 85 then '75-84'
 		when calculated AgeAsOfJuly1 >= 85 then '85+'
 		end as AGEGRP2 
+	** Adding the state here ** 
+	zipstate.state
 	from dmlocal.opioid_flat_file_pre3 as a
 	left join 
 	(select * from dmlocal.opioid_flat_file_pre2) as b
@@ -2239,14 +2248,50 @@ proc sql;
 	left join
 	(select distinct patid, race, sex, hispanic, birth_date, death_date from dmlocal.opioid_flat_file_pre ) as c
 	on a.patid=c.patid
-	/*Merge Daniella's facility location code here and merge in the state data (zipcode.sas)*/
+	/*** THIS HAS NOT BEEN TESTED 7/28/19 ***/
+	*left join the states
+	*create sas file for zip3_to_state and put in infolder with the rest of the value sets
+	* need to reorganize so that all of the CSV value sets are created in the same way
+	* This code assumes that we are using Caron's dmlocal.zipcode from her /infolder/macro/zipcode.sas
+	* but for consistency,  move that to the top.
+	left join dmlocal.zipcode as zipstate on 
+	a.facility_location=zipstate.z3
+	* WHILE WE ARE HERE, SORT DATA FOR CARRY FORWARD *
+	order by a.patid, a.EventYear
 	;
 quit;
+
+/*** THIS HAS NOT BEEN TESTED 7/28/19 ***/
+
+* Carry forward missing 3-digit location and state
+* http://support.sas.com/kb/26/013.html
+data dmlocal.opioid_flat_file_pre4;
+	drop temp;
+	drop tempst;
+	set dmlocal.opioid_flat_file_pre3;
+	by patid;
+	/* RETAIN the new carryforward variable */
+  	retain temp; 
+	retain tempst;
+	/* Reset TEMP when the BY-Group changes */
+  	if first.patid then temp=.;
+	if first.patid then tempst=;
+	/* Assign TEMP when z3 is non-missing */
+  	if z3 ne . then temp=;
+	/* When X is missing, assign the retained value of TEMP into X */
+  	else if z3=. then z3=temp;
+	* repeat for state
+	if state ne . then tempst=;
+	else if state=. then state=tempst;
+run;
 
 *add labels once Daniella provides the code;
 data dmlocal.opioid_flat_file_lab;
 	set dmlocal.opioid_flat_file;
 	label /*Add Daniella's label code here*/;
+	/*copy column C from the google spreadsheet once final variables are marked for inclusion in flat file
+	https://docs.google.com/spreadsheets/d/1Ts0mcbM1Pln7xcS6E6XGn53YAloMVgGBpzllkZFR6vI/edit#gid=368681099&range=A1
+	*/
 run;
 
 
