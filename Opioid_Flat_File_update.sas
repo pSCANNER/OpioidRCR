@@ -220,14 +220,7 @@ QUIT;
 
 PROC SQL inobs=max;
   CREATE TABLE dmlocal.facility_select AS
-  SELECT PATID, YEAR(ADMIT_DATE) as EventYear, count(*) as Qty, ADMIT_DATE, FACILITY_
-  
-  
-  
-  
-  
-  
-  
+  SELECT PATID, YEAR(ADMIT_DATE) as EventYear, count(*) as Qty, ADMIT_DATE, FACILITY_LOCATION
   FROM indata.encounter
   WHERE FACILITY_LOCATION IS NOT NULL
   GROUP BY PATID, EventYear, FACILITY_LOCATION
@@ -2022,8 +2015,6 @@ PROC SQL inobs=max;
 	, CHRON_OP.CHRONIC_OPIOID_CURRENT_PRIOR as CHRONIC_OPIOID_CURR_PRIOR  /*rename due to length*/
 	, CA_DX_CY.Cancer_AnyEncount_CY  /*new*/
 	, CA_DX_CY.Cancer_Inpt_Dx_CY  /*new*/
-	, CA_PROC_CY.Chemo_AnyEncount_CY  /*new*/
-	, CA_PROC_CY.Rad_AnyEncount_CY /*new*/
 	, SUD.Cannabis_UD_Any_CY  /*new*/
 	, SUD.Cocaine_UD_Any_CY  /*new*/
 	, SUD.Other_Stim_UD_Any_CY  /*new*/
@@ -2062,14 +2053,13 @@ PROC SQL inobs=max;
 	, max(HIVe.HIV_Dx_Any_everCY, HEPBe.HepB_Dx_Any_everCY, HEPCe.HepC_Dx_Any_everCY) as HIV_HBV_HBC_everCY  /*new*/
 	, max(BUP_CY.BUP_DISP_CY, BUP_CY.BUP_PRESC_CY) as BUP_ANY_CY /*new*/
 	, max(NALTREX_CY.NALTREX_DISP_CY, NALTREX_CY.NALTREX_PRESC_CY) as NALTREX_ANY_CY /*new*/
-	, zip.state  /*new*/
 	, FATAL_OD.NONFATAL_OD_CY  /*new*/
 	, CHRON_OP.CHRONIC_OPIOID_CY  /*new*/
 	, CHRON_OPe.CHRONIC_OPIOID_everCY  /*new*/
 	, case when DEMO.PATID=ENC_EVENT.PATID and DEMO.EventYear=ENC_EVENT.EventYear and ENC_EVENT.EventYear is not null then 1 else 0 end as ANY_ENC_CY /*new*/
 	, case when CA_DX_CY.Cancer_AnyEncount_CY=1 then 1 else 0 end as GL_A_DENOM_FOR_ST  /*new*/
 	, case when CA_PROC_CY.Chemo_AnyEncount_CY=1 or CA_PROC_CY.Rad_AnyEncount_CY=1 then 1 else 0 end as CANCER_PX_CURRENT_YEAR  /*new*/
-	, case when CA_DX_CY.Cancer_Inpt_Dx_CY=1 and calculated CANCER_PX_CURRENT_YEAR=1 then 1 else 0 end as GL_B_DENOM_FOR_ST  /*new*/
+	, case when CA_DX_CY.Cancer_Inpt_Dx_CY=1 or calculated CANCER_PX_CURRENT_YEAR=1 then 1 else 0 end as GL_B_DENOM_FOR_ST  /*new*/
 	, NAL_CORX.NALOX_OPIOID_CO_RX  /*new*/
   FROM dmlocal.patientevents as EVNTS
   LEFT JOIN dmlocal.patientdemo as DEMO
@@ -2156,8 +2146,6 @@ PROC SQL inobs=max;
 		on DEMO.PATID = NALTREX_CYe.PATID and DEMO.EventYear = NALTREX_CYe.EventYear
 	left join dmlocal.methadone_events_cy as METH_CY
 		on DEMO.PATID = METH_CY.PATID and DEMO.EventYear = METH_CY.EventYear
-	left join dmlocal.zipcode as ZIP
-		on DEMO.FACILITY_LOCATION = ZIP.zip 
 	left join dmlocal.encounter_events as ENC_EVENT
 		on DEMO.PATID = ENC_EVENT.PATID and DEMO.EventYear = ENC_EVENT.EventYear
 	left join dmlocal.nalox_opioid_co_rx as NAL_CORX
@@ -2167,10 +2155,12 @@ WHERE DEMO.AgeAsOfJuly1 >= 0
 QUIT;
 
 
+proc contents data=dmlocal.opioid_flat_file_pre;
+run;
 
 *create place holders for enrollment patients and years;
 data dmlocal.dummy_enroll;
-	set indata.enrollment (obs=20);
+	set indata.enrollment ;
 	start_year=year(enr_start_date);
 	end_year=year(enr_end_date);
 	do EVENTYEAR=start_year to end_year;
@@ -2178,7 +2168,6 @@ data dmlocal.dummy_enroll;
 	end;
 	keep PATID EVENTYEAR;
 run;
-
 
 *Do a left merge and use arrays to set missing to 0;
 proc sql;
@@ -2188,7 +2177,21 @@ proc sql;
 	left join dmlocal.opioid_flat_file_pre as b
 	on a.patid=b.patid and a.eventyear=b.eventyear;
 quit;
-*replace missing with 0 for binary variables, drop date variables and variables we will merge in later;
+
+*pull out duplicate data, if any exists;
+proc sql; 
+    create table dmlocal.DUPLICATES as 
+    select patid, eventyear, count(*) as count 
+    from dmlocal.opioid_flat_file_pre2
+    group by patid, eventyear having COUNT gt 1 
+    ;
+quit;
+
+
+
+
+
+*replace missing with 0 for binary variables;
 data dmlocal.opioid_flat_file_pre3;
 	set dmlocal.opioid_flat_file_pre2 (drop= race sex hispanic AgeAsOfJuly1 BIRTH_DATE DEATH_DATE agegrp1 agegrp2
 		ADMIT_DATE   Alcohol_Use_DO_Post_Date   BUP_DISP_POST_DATE BUP_DISP_PRE_DATE BUP_PRESC_POST_DATE BUP_PRESC_PRE_DATE  
@@ -2203,6 +2206,24 @@ data dmlocal.opioid_flat_file_pre3;
 		if n[i]=. then n[i]=0;
 	end;
 	drop i;
+run;
+
+
+
+*Daniella's code for re-coding for facility code, will merge in state data below;
+* Carry forward missing 3-digit location;
+data dmlocal.opioid_flat_file_pre4;
+	drop temp;
+	set dmlocal.opioid_flat_file_pre3;
+	by patid;
+	/* RETAIN the new carryforward variable */
+  	retain temp; 
+	/* Reset TEMP when the BY-Group changes */
+  	if first.patid then temp=.;
+	/* Assign TEMP when z3 is non-missing */
+  	if facility_location ne . then temp=facility_location;
+	/* When X is missing, assign the retained value of TEMP into X */
+  	else if facility_location=. then facility_location=temp;
 run;
 
 
@@ -2227,7 +2248,7 @@ proc sql;
 		when calculated AgeAsOfJuly1 >= 45 and calculated AgeAsOfJuly1 < 55 then '45-54'
 		when calculated AgeAsOfJuly1 >= 55 and calculated AgeAsOfJuly1 < 65 then '55-64'
 		when calculated AgeAsOfJuly1 >= 65 then '>=65'
-		end as AGEGRP1 
+		end as AGEGRP1 "AGEGRP1"
 	, case when calculated AgeAsOfJuly1 >= 0 and calculated AgeAsOfJuly1 < 11 then '0-10'
 		when calculated AgeAsOfJuly1 >= 11 and calculated AgeAsOfJuly1 < 18 then '11-17'
 		when calculated AgeAsOfJuly1 >= 18 and calculated AgeAsOfJuly1 < 26 then '18-25'
@@ -2238,60 +2259,155 @@ proc sql;
 		when calculated AgeAsOfJuly1 >= 65 and calculated AgeAsOfJuly1 < 75 then '65-74'
 		when calculated AgeAsOfJuly1 >= 75 and calculated AgeAsOfJuly1 < 85 then '75-84'
 		when calculated AgeAsOfJuly1 >= 85 then '85+'
-		end as AGEGRP2 
-	** Adding the state here ** 
-	zipstate.state
-	from dmlocal.opioid_flat_file_pre3 as a
+		end as AGEGRP2 "AGEGRP2"
+	, d.state
+	from dmlocal.opioid_flat_file_pre4 as a
 	left join 
 	(select * from dmlocal.opioid_flat_file_pre2) as b
 	on a.patid=b.patid and a.eventyear=b.eventyear
 	left join
 	(select distinct patid, race, sex, hispanic, birth_date, death_date from dmlocal.opioid_flat_file_pre ) as c
 	on a.patid=c.patid
-	/*** THIS HAS NOT BEEN TESTED 7/28/19 ***/
-	*left join the states
-	*create sas file for zip3_to_state and put in infolder with the rest of the value sets
-	* need to reorganize so that all of the CSV value sets are created in the same way
-	* This code assumes that we are using Caron's dmlocal.zipcode from her /infolder/macro/zipcode.sas
-	* but for consistency,  move that to the top.
-	left join dmlocal.zipcode as zipstate on 
-	a.facility_location=zipstate.z3
-	* WHILE WE ARE HERE, SORT DATA FOR CARRY FORWARD *
-	order by a.patid, a.EventYear
+	left join
+	(select * from dmlocal.zipcode ) as d
+	on a.facility_location=d.zip
 	;
 quit;
 
-/*** THIS HAS NOT BEEN TESTED 7/28/19 ***/
-
-* Carry forward missing 3-digit location and state
-* http://support.sas.com/kb/26/013.html
-data dmlocal.opioid_flat_file_pre4;
-	drop temp;
-	drop tempst;
-	set dmlocal.opioid_flat_file_pre3;
-	by patid;
-	/* RETAIN the new carryforward variable */
-  	retain temp; 
-	retain tempst;
-	/* Reset TEMP when the BY-Group changes */
-  	if first.patid then temp=.;
-	if first.patid then tempst=;
-	/* Assign TEMP when z3 is non-missing */
-  	if z3 ne . then temp=;
-	/* When X is missing, assign the retained value of TEMP into X */
-  	else if z3=. then z3=temp;
-	* repeat for state
-	if state ne . then tempst=;
-	else if state=. then state=tempst;
-run;
-
 *add labels once Daniella provides the code;
-data dmlocal.opioid_flat_file_lab;
+data dmlocal.opioid_flat_file;
 	set dmlocal.opioid_flat_file;
-	label /*Add Daniella's label code here*/;
-	/*copy column C from the google spreadsheet once final variables are marked for inclusion in flat file
-	https://docs.google.com/spreadsheets/d/1Ts0mcbM1Pln7xcS6E6XGn53YAloMVgGBpzllkZFR6vI/edit#gid=368681099&range=A1
-	*/
+	label
+   RX_PROVIDERID='RX_PROVIDERID RX_PROVIDERID' 
+  STATE='STATE STATE' 
+  PRIOR_YEAR_ENCOUNTER='PRIOR_YEAR_ENCOUNTER PRIOR_YEAR_ENCOUNTER' 
+  AGEGRP1='AGEGRP1 AGEGRP1' 
+  OpioidInYearPrior='OpioidInYearPrior OpioidInYearPrior' 
+  LOOKBACK_BEFORE_INDEX_OPIOID='LOOKBACK_BEFORE_INDEX_OPIOID LOOKBACK_BEFORE_INDEX_OPIOID' 
+  ADMIT_DATE='ADMIT_DATE ADMIT_DATE' 
+  IndexDate='IndexDate IndexDate' 
+  RX_ORDER_DATE='RX_ORDER_DATE RX_ORDER_DATE' 
+  Opioid_Prescription='Opioid_Prescription Opioid_Prescription' 
+  GL_A_DENOM_FOR_ST='GL_A_DENOM_FOR_ST GL_A_DENOM_FOR_ST' 
+  GL_B_DENOM_FOR_ST='GL_B_DENOM_FOR_ST GL_B_DENOM_FOR_ST' 
+  Cannabis_UD_Any_CY='Cannabis_UD_Any_CY Cannabis_UD_Any_CY' 
+  Cocaine_UD_Any_CY='Cocaine_UD_Any_CY Cocaine_UD_Any_CY' 
+  Other_Stim_UD_Any_CY='Other_Stim_UD_Any_CY Other_Stim_UD_Any_CY' 
+  Hallucinogen_UD_Any_CY='Hallucinogen_UD_Any_CY Hallucinogen_UD_Any_CY' 
+  Inhalant_UD_Any_CY='Inhalant_UD_Any_CY Inhalant_UD_Any_CY' 
+  SedHypAnx_UD_Any_CY='SedHypAnx_UD_Any_CY SedHypAnx_UD_Any_CY' 
+  HepB_Dx_Any_CY='HepB_Dx_Any_CY HepB_Dx_Any_CY' 
+  MH_Dx_Pri_CY='MH_Dx_Pri_CY MH_Dx_Pri_CY' 
+  MH_Dx_Exp_Year_Prior='MH_Dx_Exp_Year_Prior MH_Dx_Exp_Year_Prior' 
+  MH_Dx_Exp_Any_Prior='MH_Dx_Exp_Any_Prior MH_Dx_Exp_Any_Prior' 
+  Alcohol_Use_DO_Year_Prior='Alcohol_Use_DO_Year_Prior Alcohol_Use_DO_Year_Prior' 
+  Alcohol_Use_DO_Any_Prior='Alcohol_Use_DO_Any_Prior Alcohol_Use_DO_Any_Prior' 
+  Substance_Use_DO_Year_Prior='Substance_Use_DO_Year_Prior Substance_Use_DO_Year_Prior' 
+  Substance_Use_DO_Any_Prior='Substance_Use_DO_Any_Prior Substance_Use_DO_Any_Prior' 
+  Opioid_Use_DO_Year_Prior='Opioid_Use_DO_Year_Prior Opioid_Use_DO_Year_Prior' 
+  Opioid_Use_DO_Any_Prior='Opioid_Use_DO_Any_Prior Opioid_Use_DO_Any_Prior' 
+  Cannabis_Use_DO_Year_Prior='Cannabis_Use_DO_Year_Prior Cannabis_Use_DO_Year_Prior' 
+  Cannabis_Use_DO_Any_Prior='Cannabis_Use_DO_Any_Prior Cannabis_Use_DO_Any_Prior' 
+  Cocaine_Use_DO_Year_Prior='Cocaine_Use_DO_Year_Prior Cocaine_Use_DO_Year_Prior' 
+  Cocaine_Use_DO_Any_Prior='Cocaine_Use_DO_Any_Prior Cocaine_Use_DO_Any_Prior' 
+  Halluc_Use_DO_Year_Prior='Halluc_Use_DO_Year_Prior Halluc_Use_DO_Year_Prior' 
+  Halluc_Use_DO_Any_Prior='Halluc_Use_DO_Any_Prior Halluc_Use_DO_Any_Prior' 
+  Inhalant_Use_DO_Year_Prior='Inhalant_Use_DO_Year_Prior Inhalant_Use_DO_Year_Prior' 
+  Inhalant_Use_DO_Any_Prior='Inhalant_Use_DO_Any_Prior Inhalant_Use_DO_Any_Prior' 
+  Other_Stim_Use_DO_Year_Prior='Other_Stim_Use_DO_Year_Prior Other_Stim_Use_DO_Year_Prior' 
+  Other_Stim_Use_DO_Any_Prior='Other_Stim_Use_DO_Any_Prior Other_Stim_Use_DO_Any_Prior' 
+  SedHypAnx_Use_DO_Year_Prior='SedHypAnx_Use_DO_Year_Prior SedHypAnx_Use_DO_Year_Prior' 
+  SedHypAnx_Use_DO_Any_Prior='SedHypAnx_Use_DO_Any_Prior SedHypAnx_Use_DO_Any_Prior' 
+  Opioid_UD_Any_CY='Opioid_UD_Any_CY Opioid_UD_Any_CY' 
+  Alcohol_UD_Any_CY='Alcohol_UD_Any_CY Alcohol_UD_Any_CY' 
+  Substance_UD_Any_CY='Substance_UD_Any_CY Substance_UD_Any_CY' 
+  HIV_Dx_Any_CY='HIV_Dx_Any_CY HIV_Dx_Any_CY' 
+  MAT_ANY_CY='MAT_ANY_CY MAT_ANY_CY' 
+  HIV_HBV_HBC_CY='HIV_HBV_HBC_CY HIV_HBV_HBC_CY' 
+  Opioid_UD_Any_everCY='Opioid_UD_Any_everCY Opioid_UD_Any_everCY' 
+  Alcohol_UD_Any_everCY='Alcohol_UD_Any_everCY Alcohol_UD_Any_everCY' 
+  Substance_UD_Any_everCY='Substance_UD_Any_everCY Substance_UD_Any_everCY' 
+  OUD_SUD_everCY='OUD_SUD_everCY OUD_SUD_everCY' 
+  HIV_Dx_Any_everCY='HIV_Dx_Any_everCY HIV_Dx_Any_everCY' 
+  HepB_Dx_Any_everCY='HepB_Dx_Any_everCY HepB_Dx_Any_everCY' 
+  HepC_Dx_Any_everCY='HepC_Dx_Any_everCY HepC_Dx_Any_everCY' 
+  MAT_ANY_everCY='MAT_ANY_everCY MAT_ANY_everCY' 
+  HIV_HBV_HBC_everCY='HIV_HBV_HBC_everCY HIV_HBV_HBC_everCY' 
+  DEATH_DATE='DEATH_DATE DEATH_DATE' 
+  DaysToDeath='DaysToDeath DaysToDeath' 
+  DEATH_COMPLETE='DEATH_COMPLETE DEATH_COMPLETE' 
+  ED_OD_PRE='ED_OD_PRE ED_OD_PRE' 
+  OD_PRE='OD_PRE OD_PRE' 
+  NONFATAL_OD_CY='NONFATAL_OD_CY NONFATAL_OD_CY' 
+  OD_CY='OD_CY OD_CY' 
+  SUICIDE_PRE='SUICIDE_PRE SUICIDE_PRE' 
+  SMOKING='SMOKING SMOKING' 
+  CHRONIC_OPIOID_DATE='CHRONIC_OPIOID_DATE CHRONIC_OPIOID_DATE' 
+  CHRONIC_OPIOID='CHRONIC_OPIOID CHRONIC_OPIOID' 
+  CHRONIC_OPIOID_CURR_PRIOR='CHRONIC_OPIOID_CURR_PRIOR CHRONIC_OPIOID_CURR_PRIOR' 
+  CHRONIC_OPIOID_everCY='CHRONIC_OPIOID_everCY CHRONIC_OPIOID_everCY' 
+  HIV_Dx_Post_Date='HIV_Dx_Post_Date HIV_Dx_Post_Date' 
+  HepB_Dx_Post_Date='HepB_Dx_Post_Date HepB_Dx_Post_Date' 
+  HepC_Dx_Post_Date='HepC_Dx_Post_Date HepC_Dx_Post_Date' 
+  ANY_STD_POST ANY_STD_Year_Prio='ANY_STD_POST ANY_STD_Year_Prio ANY_STD_POST ANY_STD_Year_Prior' 
+  NALOXONE_INFERRED_RESCUE='NALOXONE_INFERRED_RESCUE NALOXONE_INFERRED_RESCUE' 
+  NALOXONE_DISPENSE_RESCUE='NALOXONE_DISPENSE_RESCUE NALOXONE_DISPENSE_RESCUE' 
+  ED_YR='ED_YR ED_YR' 
+  IP_YR='IP_YR IP_YR' 
+  ED_IP_YR='ED_IP_YR ED_IP_YR' 
+  ANY_ENC_CY='ANY_ENC_CY ANY_ENC_CY' 
+  BUP_PRESC_PRE='BUP_PRESC_PRE BUP_PRESC_PRE' 
+  BUP_PRESC_PRE_DATE='BUP_PRESC_PRE_DATE BUP_PRESC_PRE_DATE' 
+  BUP_PRESC_POST='BUP_PRESC_POST BUP_PRESC_POST' 
+  BUP_PRESC_POST_DATE='BUP_PRESC_POST_DATE BUP_PRESC_POST_DATE' 
+  BUP_DISP_PRE='BUP_DISP_PRE BUP_DISP_PRE' 
+  BUP_DISP_PRE_DATE='BUP_DISP_PRE_DATE BUP_DISP_PRE_DATE' 
+  BUP_DISP_POST='BUP_DISP_POST BUP_DISP_POST' 
+  BUP_DISP_POST_DATE='BUP_DISP_POST_DATE BUP_DISP_POST_DATE' 
+  BUP_ANY_CY='BUP_ANY_CY BUP_ANY_CY' 
+  BUP_DISP_CY='BUP_DISP_CY BUP_DISP_CY' 
+  BUP_PRESC_CY='BUP_PRESC_CY BUP_PRESC_CY' 
+  BUP_DISP_everCY='BUP_DISP_everCY BUP_DISP_everCY' 
+  BUP_PRESC_everCY='BUP_PRESC_everCY BUP_PRESC_everCY' 
+  NALTREX_ANY_CY='NALTREX_ANY_CY NALTREX_ANY_CY' 
+  NALTREX_DISP_CY='NALTREX_DISP_CY NALTREX_DISP_CY' 
+  NALTREX_PRESC_CY='NALTREX_PRESC_CY NALTREX_PRESC_CY' 
+  NALTREX_DISP_everCY='NALTREX_DISP_everCY NALTREX_DISP_everCY' 
+  NALTREX_PRESC_everCY='NALTREX_PRESC_everCY NALTREX_PRESC_everCY' 
+  METHADONE_ANY_CY='METHADONE_ANY_CY METHADONE_ANY_CY' 
+  NALTREX_PRESC_PRE='NALTREX_PRESC_PRE NALTREX_PRESC_PRE' 
+  NALTREX_PRESC_PRE_DATE='NALTREX_PRESC_PRE_DATE NALTREX_PRESC_PRE_DATE' 
+  NALTREX_PRESC_POST='NALTREX_PRESC_POST NALTREX_PRESC_POST' 
+  NALTREX_PRESC_POST_DATE='NALTREX_PRESC_POST_DATE NALTREX_PRESC_POST_DATE' 
+  NALTREX_DISP_PRE='NALTREX_DISP_PRE NALTREX_DISP_PRE' 
+  NALTREX_DISP_PRE_DATE='NALTREX_DISP_PRE_DATE NALTREX_DISP_PRE_DATE' 
+  NALTREX_DISP_POST='NALTREX_DISP_POST NALTREX_DISP_POST' 
+  NALTREX_DISP_POST_DATE='NALTREX_DISP_POST_DATE NALTREX_DISP_POST_DATE' 
+  METHADONE_PRESC_PRE='METHADONE_PRESC_PRE METHADONE_PRESC_PRE' 
+  METHADONE_PRESC_PRE_DATE='METHADONE_PRESC_PRE_DATE METHADONE_PRESC_PRE_DATE' 
+  METHADONE_PRESC_POST='METHADONE_PRESC_POST METHADONE_PRESC_POST' 
+  METHADONE_PRESC_POST_DATE='METHADONE_PRESC_POST_DATE METHADONE_PRESC_POST_DATE' 
+  METHADONE_DISP_PRE='METHADONE_DISP_PRE METHADONE_DISP_PRE' 
+  METHADONE_DISP_PRE_DATE='METHADONE_DISP_PRE_DATE METHADONE_DISP_PRE_DATE' 
+  METHADONE_DISP_POST='METHADONE_DISP_POST METHADONE_DISP_POST' 
+  METHADONE_DISP_POST_DATE='METHADONE_DISP_POST_DATE METHADONE_DISP_POST_DATE' 
+  Cancer_AnyEncount_CY='Cancer_AnyEncount_CY Cancer_AnyEncount_CY'  ;
+
+  BIRTH_DATE='BIRTH_DATE'
+  CT_NALOXONE_ADMIN_CUI='CT_NALOXONE_ADMIN_CUI'
+  CT_NALOXONE_ADMIN_NDC='CT_NALOXONE_ADMIN_NDC'
+  CT_NALOXONE_DISPENSE='CT_NALOXONE_DISPENSE'
+  CT_NALOXONE_PRESCRIBE='CT_NALOXONE_PRESCRIBE'
+  CT_NALOXONE_RESCUE='CT_NALOXONE_RESCUE'
+  DISPENSINGID='DISPENSINGID'
+  DATAMARTID='DATAMARTID'
+  DISPENSING_NDC='DISPENSING_NDC'
+  ED_OD_CY='ED_OD_CY'
+  ENC_TYPE='ENC_TYPE'
+  OBS_START='OBS_START'
+  PRESCRIBING_NDC='PRESCRIBING_NDC'
+  RXNORM_CUI='RXNORM_CUI'
+;
 run;
 
 
