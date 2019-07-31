@@ -1839,7 +1839,7 @@ run;
 
 PROC SQL inobs=max;
   CREATE TABLE dmlocal.opioid_flat_file_pre AS
-  SELECT distinct &DataMartID as DataMartID
+  SELECT &DataMartID as DataMartID
 	, DEMO.*
 	, case when DEMO.DEATH_DATE IS NOT NULL 
 		and DEMO.DEATH_DATE < EVNTS.ADMIT_DATE then 1 else 0 end as ZOMBIE_FLAG 
@@ -2096,18 +2096,18 @@ PROC SQL inobs=max;
 			and DEMO.EventYear = HEPB.EventYear
 	left join dmlocal.hepb_events_ever as HEPBe
 		on DEMO.PATID = HEPBe.PATID
-			and DEMO.EventYear = HEPB.EventYear
+			and DEMO.EventYear = HEPBe.EventYear
 	left join dmlocal.hepc_events as HEPC
 		on DEMO.PATID = HEPC.PATID
 			and DEMO.EventYear = HEPC.EventYear
 	left join dmlocal.hepc_events_ever as HEPCe
 		on DEMO.PATID = HEPCe.PATID
-			and DEMO.EventYear = HEPC.EventYear
+			and DEMO.EventYear = HEPCe.EventYear
 	left join dmlocal.hiv_events as HIV
 		on DEMO.PATID = HIV.PATID
 			and DEMO.EventYear = HIV.EventYear
 	left join dmlocal.hiv_events_ever as HIVe
-		on DEMO.PATID = HIV.PATID
+		on DEMO.PATID = HIVe.PATID
 			and DEMO.EventYear = HIVe.EventYear
   LEFT JOIN dmlocal.BDZ_Events as BDZ
    ON DEMO.PATID = BDZ.PATID AND DEMO.EventYear = BDZ.EventYear
@@ -2216,6 +2216,8 @@ data dmlocal.opioid_flat_file_pre4;
 	end;
 	drop i;
 run;
+
+
 
 
 
@@ -2390,7 +2392,6 @@ data dmlocal.opioid_flat_file;
   METHADONE_DISP_POST='METHADONE_DISP_POST' 
   METHADONE_DISP_POST_DATE='METHADONE_DISP_POST_DATE' 
   Cancer_AnyEncount_CY='Cancer_AnyEncount_CY'  
-
   BIRTH_DATE='BIRTH_DATE'
   CT_NALOXONE_ADMIN_CUI='CT_NALOXONE_ADMIN_CUI'
   CT_NALOXONE_ADMIN_NDC='CT_NALOXONE_ADMIN_NDC'
@@ -2407,9 +2408,62 @@ data dmlocal.opioid_flat_file;
   RXNORM_CUI='RXNORM_CUI'
   AgeAsOfJuly1='AgeAsOfJuly1'
   FACILITY_LOCATION='FACILITY_LOCATION'
+  EVENTYEAR='EVENTYEAR'
+  Alcohol_Use_DO_Post_Date='Alcohol_Use_DO_Post_Date'
+  BDZ_3MO='BDZ_3MO'
+  BDZ_Disp_3mo='BDZ_Disp_3mo'
+  BDZ_Presc_3mo='BDZ_Presc_3mo'
+  CANCER_PROC_FLAG='CANCER_PROC_FLAG'
+  CANCER_PX_CURRENT_YEAR='CANCER_PX_CURRENT_YEAR'
+  CHRONIC_OPIOID_CY='CHRONIC_OPIOID_CY'
+  Cancer_AnyEnc_Dx_Year_Prior='Cancer_AnyEnc_Dx_Year_Prior'
+  Cancer_Inpt_Dx_CY='Cancer_Inpt_Dx_CY'
+  Cancer_Inpt_Dx_Year_Prior='Cancer_Inpt_Dx_Year_Prior'
+  Cannabis_Use_DO_Post_Date='Cannabis_Use_DO_Post_Date'
+  Cocaine_Use_DO_Post_Date='Cocaine_Use_DO_Post_Date'
+  ED_OD_POST_DATE='ED_OD_POST_DATE'
+  ED_OD_POST='ED_OD_POST'
+  ED_OD_PRE_DATE='ED_OD_PRE_DATE'
+  FATAL_OVERDOSE='FATAL_OVERDOSE'
+  FirstOpioidDate='FirstOpioidDate'
+  HIV_Dx_Any_Prior='HIV_Dx_Any_Prior'
+  HIV_Dx_Year_Prior='HIV_Dx_Year_Prior'
+  Halluc_Use_DO_Post_Date='Halluc_Use_DO_Post_Date'
+  HepB_Dx_Any_Prior='HepB_Dx_Any_Prior'
+  HepB_Dx_Year_Prior='HepB_Dx_Year_Prior'
+  HepC_Dx_Any_CY='HepC_Dx_Any_CY'
+  HepC_Dx_Any_Prior='HepC_Dx_Any_Prior'
+  HepC_Dx_Year_Prior='HepC_Dx_Year_Prior'
+  Inhalant_Use_DO_Year_Prior='Inhalant_Use_DO_Year_Prior'
+  Inhalant_Use_DO_Post_Date='Inhalant_Use_DO_Post_Date'
+  MH_Dx_Exp_CY='MH_Dx_Exp_CY'
+  MH_Dx_Pri_Any_Prior='MH_Dx_Pri_Any_Prior'
+  MH_Dx_Pri_Year_Prior='MH_Dx_Pri_Year_Prior'
+  NALOXONE_ADMIN_RESCUE='NALOXONE_ADMIN_RESCUE'
+  NALOXONE_PRESCRIBE_RESCUE='NALOXONE_PRESCRIBE_RESCUE'
+  NALOX_AMBULATORY='NALOX_AMBULATORY'
+  NALOX_AMBULATORY_DATE='NALOX_AMBULATORY_DATE'
+  OD_POST='OD_POST'
+  OD_POST_DATE='OD_POST_DATE'
+  OD_PRE_DATE='OD_PRE_DATE'
+  OPIOID_FLAG='OPIOID_FLAG'
+  Opioid_Dispensation='Opioid_Dispensation'
+  Opioid_Use_DO_Post_Date='Opioid_Use_DO_Post_Date'
+  Other_Stim_Use_DO_Post_Date='Other_Stim_Use_DO_Post_Date'
+  Rad_AnyEncount_Year_Prior='Rad_AnyEncount_Year_Prior'
+  SUICIDE_POST='SUICIDE_POST'
+  SUICIDE_POST_DATE='SUICIDE_POST_DATE'
+  SUICIDE_PRE_DATE='SUICIDE_PRE_DATE'
+  SedHypAnx_Use_DO_Post_Date='SedHypAnx_Use_DO_Post_Date'
+  Substance_Use_DO_Post_Date='Substance_Use_DO_Post_Date'
+  UDS_CPT='UDS_CPT'
+  UDS_FLAG='UDS_FLAG'
+  UDS_LOINC='UDS_LOINC'
+  ZOMBIE_FLAG='ZOMBIE_FLAG'
+  nalox_opioid_co_rx='nalox_opioid_co_rx'
+  Chemo_AnyEncount_Year_Prior='Chemo_AnyEncount_Year_Prior'
 ;
 run;
-
 
 
 
