@@ -734,13 +734,14 @@ QUIT;
 
 
 * New--Create SAS data file dmlocal.substance_use_do_events_ever;
-*new variables added: Opioid_UD_Any_everCY, Alcohol_UD_Any_everCY, Substance_UD_Any_everCY, OUD_SUD_everCY ;
+*new variables added: Opioid_UD_Any_everCY, Alcohol_UD_Any_everCY, Substance_UD_Any_everCY, OUD_SUD_everCY, Substance_UD_Any_CY, Opioid_UD_Any_CY, OUD_SUD_CY ;
 PROC SQL inobs=max;
   CREATE TABLE dmlocal.substance_use_do_events_ever AS
   select patid, eventyear, max(Alcohol_UD_Any_everCY ) as Alcohol_UD_Any_everCY ,
   		max(Substance_UD_Any_everCY) as Substance_UD_Any_everCY,
 		max(Opioid_UD_Any_everCY) as Opioid_UD_Any_everCY,
-		max(OUD_SUD_everCY) as OUD_SUD_everCY
+		max(OUD_SUD_everCY) as OUD_SUD_everCY,
+		max(max(Substance_UD_Any_CY, Opioid_UD_Any_CY)) as OUD_SUD_CY /*new*/
   from 
 (select PE.PATID, PE.EventYear
 	, case when SU.Code_List_1 = 'Alcohol Use Disorder'
@@ -754,6 +755,12 @@ PROC SQL inobs=max;
 		end as Opioid_UD_Any_everCY /*new*/
 	, max(calculated Substance_UD_Any_everCY, calculated Opioid_UD_Any_everCY)
 		as OUD_SUD_everCY /*new*/
+	, case when (SU.Code_List_1 = 'Substance Use Disorder' or SU.Code_List_2 = 'Substance Use Disorder')
+		and year(Dx.ADMIT_DATE) = PE.EventYear then 1 else 0
+		end as Substance_UD_Any_CY /*new*/
+	, case when SU.Code_List_1 = 'Opioid Use Disorder'
+		and year(Dx.ADMIT_DATE) = PE.EventYear then 1 else 0
+		end as Opioid_UD_Any_CY /*new*/
 from indata.DIAGNOSIS as Dx
 	join infolder.substanceusedisorder as SU
 		on SU.Code = Dx.DX 
@@ -767,7 +774,6 @@ from indata.DIAGNOSIS as Dx
 group by PE.PATID)
 group by PATID, EventYear
   ;
-RUN;
 QUIT;
 
 
@@ -1591,7 +1597,7 @@ QUIT;
 
 
 * Create SAS data file dmlocal.od_events;
-*new variables added: OD_CY, ED_OD_CY;
+*new variables added: OD_CY, f_CY;
 PROC SQL inobs=max;
 CREATE TABLE dmlocal.od_events as
 select PE.PATID
@@ -1826,6 +1832,60 @@ quit;
 
 
 
+*Pull distinct dates for AESOPS before incorporating;
+proc sql;
+	create table dmlocal.aesop1 as
+	select * , case when enr_start_date<=rx_order_date<=enr_end_date then 1 else 0 end as within_enr /*check and make sure all RX dates are within enrollment dates*/
+	from
+	(select distinct a.patid, a.eventyear, a.rx_order_date, b.enr_start_date, b.enr_end_date, c.FirstOpioidDate format=DATE9.
+	from dmlocal.prescribing_events_all as a
+	left join
+	(select * from indata.enrollment ) as b
+	on a.patid=b.patid 
+	left join
+	(select * from dmlocal.first_opioid) as c
+	on a.patid=c.patid)
+	where 2010<=eventyear<=2017
+	order by patid, eventyear, rx_order_date
+	;
+quit;
+*create indicator for first obs per patient and count of rx per year;
+data dmlocal.aesop2 ;
+	set dmlocal.aesop1;
+	format prev_date1 prev_date2 DATE9.;
+	by patid eventyear rx_order_date;
+	if first.patid=1 then id_seq=1;
+		else id_seq+1;
+	if first.eventyear=1 then yr_seq=0;
+		yr_seq+1;
+	prevdate1=lag(rx_order_date);
+	if first.patid=1 then prev_date1=.;
+		else prev_date1=prevdate1;
+	diff_date1=rx_order_date-prev_date1;
+	prevdate2=lag(prev_date1);
+	if first.patid=1 then prev_date2=.;
+		else prev_date2=prevdate2;
+	diff_date2=prev_date1-prev_date2;
+	if id_seq=1 then naive=1;
+		else if diff_date1>90 then naive=1;
+		else if diff_date1<91 then naive=0;
+	if diff_date2=. then chronic=0;
+		else if .<diff_date1<91 and .<diff_date2<91 then chronic=1;
+		else chronic=0;
+	if diff_date1>90 and .<diff_date2<91 then trans=1;
+		else if .<diff_date1<91 and diff_date2>90 then trans=1;
+		else trans=0;
+run;
+/** New--Create SAS data file dmlocal.aesop;*/
+/**new variables added:  OPIOID_naive_90D, OPIOID_chronic_90D, OPIOID_TRANS;*/
+proc sql;
+	create table dmlocal.aesop as
+	select patid, eventyear, min(naive) as OPIOID_naive_90D, max(chronic) as OPIOID_chronic_90D, max(trans) as OPIOID_TRANS
+	from dmlocal.aesop2
+	group by patid, eventyear;
+quit;
+
+
 
 
 
@@ -2031,6 +2091,7 @@ PROC SQL inobs=max;
 	, SUDe.Alcohol_UD_Any_everCY  /*new*/
 	, SUDe.Substance_UD_Any_everCY  /*new*/
 	, SUDe.OUD_SUD_everCY  /*new*/
+	, SUDe.OUD_SUD_CY  /*new*/
 	, HEPB.HepB_Dx_Any_CY  /*new*/
 	, HEPBe.HepB_Dx_Any_everCY  /*new*/
 	, HEPC.HepC_Dx_Any_CY  /*new*/
@@ -2061,8 +2122,8 @@ PROC SQL inobs=max;
 	, CHRON_OPe.CHRONIC_OPIOID_everCY  /*new*/
 	, case when DEMO.PATID=ENC_EVENT.PATID and DEMO.EventYear=ENC_EVENT.EventYear and ENC_EVENT.EventYear is not null then 1 else 0 end as ANY_ENC_CY /*new*/
 	, case when CA_DX_CY.Cancer_AnyEncount_CY=1 then 1 else 0 end as GL_A_DENOM_FOR_ST  /*new*/
-	, case when CA_PROC_CY.Chemo_AnyEncount_CY=1 or CA_PROC_CY.Rad_AnyEncount_CY=1 then 1 else 0 end as CANCER_PX_CURRENT_YEAR  /*new*/
-	, case when CA_DX_CY.Cancer_Inpt_Dx_CY=1 or calculated CANCER_PX_CURRENT_YEAR=1 then 1 else 0 end as GL_B_DENOM_FOR_ST  /*new*/
+	, case when CA_PROC_CY.Chemo_AnyEncount_CY=1 or CA_PROC_CY.Rad_AnyEncount_CY=1 then 0 else 1 end as CANCER_PX_CURRENT_YEAR  /*new*/
+	, case when CA_DX_CY.Cancer_Inpt_Dx_CY=1 or calculated CANCER_PX_CURRENT_YEAR=1 then 0 else 1 end as GL_B_DENOM_FOR_ST  /*new*/
 	, NAL_CORX.NALOX_OPIOID_CO_RX  /*new*/
   FROM dmlocal.patientevents as EVNTS
   LEFT JOIN dmlocal.patientdemo as DEMO
@@ -2168,7 +2229,7 @@ data dmlocal.dummy_enroll;
 	do EVENTYEAR=start_year to end_year;
 		output;
 	end;
-	keep PATID EVENTYEAR;
+	keep PATID EVENTYEAR enr_start_date;
 run;
 
 *Do a left merge and use arrays to set missing to 0;
@@ -2209,7 +2270,7 @@ data dmlocal.opioid_flat_file_pre4;
 		methadone_disp_post_date methadone_disp_pre_date methadone_presc_post_date methadone_presc_pre_date
 		nalox_ambulatory_date naltrex_disp_post_date naltrex_disp_pre_date naltrex_presc_post_date naltrex_presc_pre_date
 		obs_start od_post_date od_pre_date opioid_use_do_post_date other_stim_use_do_post_date rx_order_date
-		suicide_post_date suicide_pre_date sedhypanx_use_do_post_date substance_use_do_post_date);
+		suicide_post_date suicide_pre_date sedhypanx_use_do_post_date substance_use_do_post_date enr_start_date);
 	array n[*] _numeric_;
 	do i=1 to dim(n);
 		if n[i]=. then n[i]=0;
@@ -2225,6 +2286,7 @@ run;
 *recalculate agegroup and age in july;
 *need to merge in the facility code from Daniella and then merge in the state code;
 *need to re-add datamartid;
+* new variables: binary_race, binary_sex, binary_hispanic, chronic_opioid_ind, CY_OPIOID_IND, TimeFromIndexOpioidToOUD, Opioid_Use_DO_indicator;
 proc sql;
 	create table dmlocal.opioid_flat_file as
 	select distinct * from
@@ -2234,7 +2296,7 @@ proc sql;
 		, b.methadone_disp_post_date , b.methadone_disp_pre_date , b.methadone_presc_post_date , b.methadone_presc_pre_date
 		, b.nalox_ambulatory_date , b.naltrex_disp_post_date , b.naltrex_disp_pre_date , b.naltrex_presc_post_date , b.naltrex_presc_pre_date
 		, b.obs_start, b.od_post_date , b.od_pre_date, b.opioid_use_do_post_date , b.other_stim_use_do_post_date , b.rx_order_date
-		, b.suicide_post_date , b.suicide_pre_date , b.sedhypanx_use_do_post_date , b.substance_use_do_post_date
+		, b.suicide_post_date , b.suicide_pre_date , b.sedhypanx_use_do_post_date , b.substance_use_do_post_date, b.enr_start_date
 		, c.race, c.sex, c.hispanic, c.birth_date, c.death_date, int(yrdif(c.BIRTH_DATE, MDY(7, 1, a.EventYear), 'AGE')) as AgeAsOfJuly1
 		, case when calculated AgeAsOfJuly1 >= 0 and calculated AgeAsOfJuly1 < 15 then '0-14'
   		when calculated AgeAsOfJuly1 >= 15 and calculated AgeAsOfJuly1 < 20 then '15-19'
@@ -2244,7 +2306,7 @@ proc sql;
 		when calculated AgeAsOfJuly1 >= 45 and calculated AgeAsOfJuly1 < 55 then '45-54'
 		when calculated AgeAsOfJuly1 >= 55 and calculated AgeAsOfJuly1 < 65 then '55-64'
 		when calculated AgeAsOfJuly1 >= 65 then '>=65'
-		end as AGEGRP1 "AGEGRP1"
+		else "" end as AGEGRP1 "AGEGRP1"
 	, case when calculated AgeAsOfJuly1 >= 0 and calculated AgeAsOfJuly1 < 11 then '0-10'
 		when calculated AgeAsOfJuly1 >= 11 and calculated AgeAsOfJuly1 < 18 then '11-17'
 		when calculated AgeAsOfJuly1 >= 18 and calculated AgeAsOfJuly1 < 26 then '18-25'
@@ -2255,8 +2317,25 @@ proc sql;
 		when calculated AgeAsOfJuly1 >= 65 and calculated AgeAsOfJuly1 < 75 then '65-74'
 		when calculated AgeAsOfJuly1 >= 75 and calculated AgeAsOfJuly1 < 85 then '75-84'
 		when calculated AgeAsOfJuly1 >= 85 then '85+'
-		end as AGEGRP2 "AGEGRP2"
+		else "" end as AGEGRP2 "AGEGRP2"
 	, d.state, &DataMartID as DataMartID
+	,case when  c.race IN ("NI","OT") then .
+	   	when c.race="05" then 1
+		else 0 end as BINARY_RACE
+	,case when c.sex in ("NI","OT") then .
+		when c.sex = "F" then 1
+		ELSE 0 end as BINARY_SEX
+	,case when c.hispanic IN ("NI","OT") then .
+		when c.hispanic = "Y" then 1
+		ELSE 0 end as BINARY_HISPANIC 
+	,case when a.GL_B_DENOM_FOR_ST=1 and a.chronic_opioid_evercy=1 then 1 else 0 end as CHRONIC_OPIOID_IND /*new*/
+	,case when a.GL_B_DENOM_FOR_ST=1 and a.opioid_flag=1 then 1 else 0 end as OPIOID_EXP_IND /*new*/
+	,Opioid_Use_DO_Post_date - FirstOpioidDate as TimeFromIndexOpioidToOUD /*new*/
+	,case when calculated TimeFromIndexOpioidToOUD>0 then 1
+		else 0 end as OUD_Post_Opioid_Exp /*new*/
+	, aesop.OPIOID_naive_90D /*new*/
+	, aesop.OPIOID_chronic_90D /*new*/
+	, aesop.OPIOID_TRANS /*new*/
 	from dmlocal.opioid_flat_file_pre4 (drop=DataMartID) as a
 	left join 
 	(select * from dmlocal.opioid_flat_file_pre3) as b
@@ -2266,7 +2345,10 @@ proc sql;
 	on a.patid=c.patid
 	left join
 	(select * from dmlocal.zipcode ) as d
-	on a.facility_location=d.zip)
+	on a.facility_location=d.zip
+	left join 
+	(select * from dmlocal.aesop) as aesop
+	on a.patid=aesop.patid and a.eventyear=aesop.eventyear)
 	order by patid, eventyear
 	;
 quit;
@@ -2277,193 +2359,230 @@ quit;
 data dmlocal.opioid_flat_file;
 	set dmlocal.opioid_flat_file;
 	label
-   RX_PROVIDERID='RX_PROVIDERID' 
-  STATE='STATE' 
-  PRIOR_YEAR_ENCOUNTER='PRIOR_YEAR_ENCOUNTER' 
-  AGEGRP1='AGEGRP1' 
-  AGEGRP2='AGEGRP2' 
-  OpioidInYearPrior='OpioidInYearPrior' 
-  LOOKBACK_BEFORE_INDEX_OPIOID='LOOKBACK_BEFORE_INDEX_OPIOID' 
-  ADMIT_DATE='ADMIT_DATE' 
-  IndexDate='IndexDate' 
-  RX_ORDER_DATE='RX_ORDER_DATE' 
-  Opioid_Prescription='Opioid_Prescription' 
-  GL_A_DENOM_FOR_ST='GL_A_DENOM_FOR_ST' 
-  GL_B_DENOM_FOR_ST='GL_B_DENOM_FOR_ST' 
-  Cannabis_UD_Any_CY='Cannabis_UD_Any_CY' 
-  Cocaine_UD_Any_CY='Cocaine_UD_Any_CY' 
-  Other_Stim_UD_Any_CY='Other_Stim_UD_Any_CY' 
-  Hallucinogen_UD_Any_CY='Hallucinogen_UD_Any_CY' 
-  Inhalant_UD_Any_CY='Inhalant_UD_Any_CY' 
-  SedHypAnx_UD_Any_CY='SedHypAnx_UD_Any_CY' 
-  HepB_Dx_Any_CY='HepB_Dx_Any_CY' 
-  MH_Dx_Pri_CY='MH_Dx_Pri_CY' 
-  MH_Dx_Exp_Year_Prior='MH_Dx_Exp_Year_Prior' 
-  MH_Dx_Exp_Any_Prior='MH_Dx_Exp_Any_Prior' 
-  Alcohol_Use_DO_Year_Prior='Alcohol_Use_DO_Year_Prior' 
-  Alcohol_Use_DO_Any_Prior='Alcohol_Use_DO_Any_Prior' 
-  Substance_Use_DO_Year_Prior='Substance_Use_DO_Year_Prior' 
-  Substance_Use_DO_Any_Prior='Substance_Use_DO_Any_Prior' 
-  Opioid_Use_DO_Year_Prior='Opioid_Use_DO_Year_Prior' 
-  Opioid_Use_DO_Any_Prior='Opioid_Use_DO_Any_Prior' 
-  Cannabis_Use_DO_Year_Prior='Cannabis_Use_DO_Year_Prior' 
-  Cannabis_Use_DO_Any_Prior='Cannabis_Use_DO_Any_Prior' 
-  Cocaine_Use_DO_Year_Prior='Cocaine_Use_DO_Year_Prior' 
-  Cocaine_Use_DO_Any_Prior='Cocaine_Use_DO_Any_Prior' 
-  Halluc_Use_DO_Year_Prior='Halluc_Use_DO_Year_Prior' 
-  Halluc_Use_DO_Any_Prior='Halluc_Use_DO_Any_Prior' 
-  Inhalant_Use_DO_Year_Prior='Inhalant_Use_DO_Year_Prior' 
-  Inhalant_Use_DO_Any_Prior='Inhalant_Use_DO_Any_Prior' 
-  Other_Stim_Use_DO_Year_Prior='Other_Stim_Use_DO_Year_Prior' 
-  Other_Stim_Use_DO_Any_Prior='Other_Stim_Use_DO_Any_Prior' 
-  SedHypAnx_Use_DO_Year_Prior='SedHypAnx_Use_DO_Year_Prior' 
-  SedHypAnx_Use_DO_Any_Prior='SedHypAnx_Use_DO_Any_Prior' 
-  Opioid_UD_Any_CY='Opioid_UD_Any_CY' 
-  Alcohol_UD_Any_CY='Alcohol_UD_Any_CY' 
-  Substance_UD_Any_CY='Substance_UD_Any_CY' 
-  HIV_Dx_Any_CY='HIV_Dx_Any_CY' 
-  MAT_ANY_CY='MAT_ANY_CY' 
-  HIV_HBV_HBC_CY='HIV_HBV_HBC_CY' 
-  Opioid_UD_Any_everCY='Opioid_UD_Any_everCY' 
-  Alcohol_UD_Any_everCY='Alcohol_UD_Any_everCY' 
-  Substance_UD_Any_everCY='Substance_UD_Any_everCY' 
-  OUD_SUD_everCY='OUD_SUD_everCY' 
-  HIV_Dx_Any_everCY='HIV_Dx_Any_everCY' 
-  HepB_Dx_Any_everCY='HepB_Dx_Any_everCY' 
-  HepC_Dx_Any_everCY='HepC_Dx_Any_everCY' 
-  MAT_ANY_everCY='MAT_ANY_everCY' 
-  HIV_HBV_HBC_everCY='HIV_HBV_HBC_everCY' 
-  DEATH_DATE='DEATH_DATE' 
-  DaysToDeath='DaysToDeath' 
-  DEATH_COMPLETE='DEATH_COMPLETE' 
-  ED_OD_PRE='ED_OD_PRE' 
-  OD_PRE='OD_PRE' 
-  NONFATAL_OD_CY='NONFATAL_OD_CY' 
-  OD_CY='OD_CY' 
-  SUICIDE_PRE='SUICIDE_PRE' 
-  SMOKING='SMOKING' 
-  CHRONIC_OPIOID_DATE='CHRONIC_OPIOID_DATE' 
-  CHRONIC_OPIOID='CHRONIC_OPIOID CHRONIC_OPIOID' 
-  CHRONIC_OPIOID_CURR_PRIOR='CHRONIC_OPIOID_CURR_PRIOR' 
-  CHRONIC_OPIOID_everCY='CHRONIC_OPIOID_everCY' 
-  HIV_Dx_Post_Date='HIV_Dx_Post_Date' 
-  HepB_Dx_Post_Date='HepB_Dx_Post_Date' 
-  HepC_Dx_Post_Date='HepC_Dx_Post_Date' 
-  ANY_STD_Year_Prior='ANY_STD_Year_Prior' 
-  NALOXONE_INFERRED_RESCUE='NALOXONE_INFERRED_RESCUE' 
-  NALOXONE_DISPENSE_RESCUE='NALOXONE_DISPENSE_RESCUE' 
-  ED_YR='ED_YR' 
-  IP_YR='IP_YR' 
-  ED_IP_YR='ED_IP_YR' 
-  ANY_ENC_CY='ANY_ENC_CY' 
-  BUP_PRESC_PRE='BUP_PRESC_PRE' 
-  BUP_PRESC_PRE_DATE='BUP_PRESC_PRE_DATE' 
-  BUP_PRESC_POST='BUP_PRESC_POST' 
-  BUP_PRESC_POST_DATE='BUP_PRESC_POST_DATE' 
-  BUP_DISP_PRE='BUP_DISP_PRE' 
-  BUP_DISP_PRE_DATE='BUP_DISP_PRE_DATE' 
-  BUP_DISP_POST='BUP_DISP_POST' 
-  BUP_DISP_POST_DATE='BUP_DISP_POST_DATE' 
-  BUP_ANY_CY='BUP_ANY_CY' 
-  BUP_DISP_CY='BUP_DISP_CY' 
-  BUP_PRESC_CY='BUP_PRESC_CY' 
-  BUP_DISP_everCY='BUP_DISP_everCY' 
-  BUP_PRESC_everCY='BUP_PRESC_everCY' 
-  NALTREX_ANY_CY='NALTREX_ANY_CY' 
-  NALTREX_DISP_CY='NALTREX_DISP_CY' 
-  NALTREX_PRESC_CY='NALTREX_PRESC_CY' 
-  NALTREX_DISP_everCY='NALTREX_DISP_everCY' 
-  NALTREX_PRESC_everCY='NALTREX_PRESC_everCY' 
-  METHADONE_ANY_CY='METHADONE_ANY_CY' 
-  NALTREX_PRESC_PRE='NALTREX_PRESC_PRE' 
-  NALTREX_PRESC_PRE_DATE='NALTREX_PRESC_PRE_DATE' 
-  NALTREX_PRESC_POST='NALTREX_PRESC_POST' 
-  NALTREX_PRESC_POST_DATE='NALTREX_PRESC_POST_DATE' 
-  NALTREX_DISP_PRE='NALTREX_DISP_PRE' 
-  NALTREX_DISP_PRE_DATE='NALTREX_DISP_PRE_DATE' 
-  NALTREX_DISP_POST='NALTREX_DISP_POST' 
-  NALTREX_DISP_POST_DATE='NALTREX_DISP_POST_DATE' 
-  METHADONE_PRESC_PRE='METHADONE_PRESC_PRE' 
-  METHADONE_PRESC_PRE_DATE='METHADONE_PRESC_PRE_DATE' 
-  METHADONE_PRESC_POST='METHADONE_PRESC_POST' 
-  METHADONE_PRESC_POST_DATE='METHADONE_PRESC_POST_DATE' 
-  METHADONE_DISP_PRE='METHADONE_DISP_PRE' 
-  METHADONE_DISP_PRE_DATE='METHADONE_DISP_PRE_DATE' 
-  METHADONE_DISP_POST='METHADONE_DISP_POST' 
-  METHADONE_DISP_POST_DATE='METHADONE_DISP_POST_DATE' 
-  Cancer_AnyEncount_CY='Cancer_AnyEncount_CY'  
-  BIRTH_DATE='BIRTH_DATE'
-  CT_NALOXONE_ADMIN_CUI='CT_NALOXONE_ADMIN_CUI'
-  CT_NALOXONE_ADMIN_NDC='CT_NALOXONE_ADMIN_NDC'
-  CT_NALOXONE_DISPENSE='CT_NALOXONE_DISPENSE'
-  CT_NALOXONE_PRESCRIBE='CT_NALOXONE_PRESCRIBE'
-  CT_NALOXONE_RESCUE='CT_NALOXONE_RESCUE'
-  DISPENSINGID='DISPENSINGID'
-  DATAMARTID='DATAMARTID'
-  DISPENSING_NDC='DISPENSING_NDC'
-  ED_OD_CY='ED_OD_CY'
-  ENC_TYPE='ENC_TYPE'
-  OBS_START='OBS_START'
-  PRESCRIBING_NDC='PRESCRIBING_NDC'
-  RXNORM_CUI='RXNORM_CUI'
-  AgeAsOfJuly1='AgeAsOfJuly1'
-  FACILITY_LOCATION='FACILITY_LOCATION'
-  EVENTYEAR='EVENTYEAR'
-  Alcohol_Use_DO_Post_Date='Alcohol_Use_DO_Post_Date'
-  BDZ_3MO='BDZ_3MO'
-  BDZ_Disp_3mo='BDZ_Disp_3mo'
-  BDZ_Presc_3mo='BDZ_Presc_3mo'
-  CANCER_PROC_FLAG='CANCER_PROC_FLAG'
-  CANCER_PX_CURRENT_YEAR='CANCER_PX_CURRENT_YEAR'
-  CHRONIC_OPIOID_CY='CHRONIC_OPIOID_CY'
-  Cancer_AnyEnc_Dx_Year_Prior='Cancer_AnyEnc_Dx_Year_Prior'
-  Cancer_Inpt_Dx_CY='Cancer_Inpt_Dx_CY'
-  Cancer_Inpt_Dx_Year_Prior='Cancer_Inpt_Dx_Year_Prior'
-  Cannabis_Use_DO_Post_Date='Cannabis_Use_DO_Post_Date'
-  Cocaine_Use_DO_Post_Date='Cocaine_Use_DO_Post_Date'
-  ED_OD_POST_DATE='ED_OD_POST_DATE'
-  ED_OD_POST='ED_OD_POST'
-  ED_OD_PRE_DATE='ED_OD_PRE_DATE'
-  FATAL_OVERDOSE='FATAL_OVERDOSE'
-  FirstOpioidDate='FirstOpioidDate'
-  HIV_Dx_Any_Prior='HIV_Dx_Any_Prior'
-  HIV_Dx_Year_Prior='HIV_Dx_Year_Prior'
-  Halluc_Use_DO_Post_Date='Halluc_Use_DO_Post_Date'
-  HepB_Dx_Any_Prior='HepB_Dx_Any_Prior'
-  HepB_Dx_Year_Prior='HepB_Dx_Year_Prior'
-  HepC_Dx_Any_CY='HepC_Dx_Any_CY'
-  HepC_Dx_Any_Prior='HepC_Dx_Any_Prior'
-  HepC_Dx_Year_Prior='HepC_Dx_Year_Prior'
-  Inhalant_Use_DO_Year_Prior='Inhalant_Use_DO_Year_Prior'
-  Inhalant_Use_DO_Post_Date='Inhalant_Use_DO_Post_Date'
-  MH_Dx_Exp_CY='MH_Dx_Exp_CY'
-  MH_Dx_Pri_Any_Prior='MH_Dx_Pri_Any_Prior'
-  MH_Dx_Pri_Year_Prior='MH_Dx_Pri_Year_Prior'
-  NALOXONE_ADMIN_RESCUE='NALOXONE_ADMIN_RESCUE'
-  NALOXONE_PRESCRIBE_RESCUE='NALOXONE_PRESCRIBE_RESCUE'
-  NALOX_AMBULATORY='NALOX_AMBULATORY'
-  NALOX_AMBULATORY_DATE='NALOX_AMBULATORY_DATE'
-  OD_POST='OD_POST'
-  OD_POST_DATE='OD_POST_DATE'
-  OD_PRE_DATE='OD_PRE_DATE'
-  OPIOID_FLAG='OPIOID_FLAG'
-  Opioid_Dispensation='Opioid_Dispensation'
-  Opioid_Use_DO_Post_Date='Opioid_Use_DO_Post_Date'
-  Other_Stim_Use_DO_Post_Date='Other_Stim_Use_DO_Post_Date'
-  Rad_AnyEncount_Year_Prior='Rad_AnyEncount_Year_Prior'
-  SUICIDE_POST='SUICIDE_POST'
-  SUICIDE_POST_DATE='SUICIDE_POST_DATE'
-  SUICIDE_PRE_DATE='SUICIDE_PRE_DATE'
-  SedHypAnx_Use_DO_Post_Date='SedHypAnx_Use_DO_Post_Date'
-  Substance_Use_DO_Post_Date='Substance_Use_DO_Post_Date'
-  UDS_CPT='UDS_CPT'
-  UDS_FLAG='UDS_FLAG'
-  UDS_LOINC='UDS_LOINC'
-  ZOMBIE_FLAG='ZOMBIE_FLAG'
-  nalox_opioid_co_rx='nalox_opioid_co_rx'
-  Chemo_AnyEncount_Year_Prior='Chemo_AnyEncount_Year_Prior'
+   ENCOUNTERID='Encounter ID'
+	FACILITY_LOCATION='Zip Code - most frequent zip code for encounter-year, use recency to break ties.'
+	OBS_START='First Encounter Date'
+	RX_PROVIDERID='RX_PROVIDERID'
+	STATE='STATE - use crosswalk '
+	PRIOR_YEAR_ENCOUNTER='Prior Year Encounter Y/N'
+	PATID='Patient_ID'
+	RACE='Race'
+	SEX='Sex'
+	HISPANIC='Ethnicity'
+	AgeAsOfJuly1='Age (calculated by patient age for majority of calendar year)'
+	AGEGRP1='AGEGROUP (must be derived)'
+	AGEGRP2='AGEGROUP (must be derived)'
+	EventYear='Year'
+	state='STATE derived from zip code'
+	PRESCRIBINGID='PRESCRIBINGID'
+	OpioidInYearPrior='(Y/N) Was there opioid order or fill in the 365 days prior to index date'
+	LOOKBACK_BEFORE_INDEX_OPIOID='Clean period (days between first observation in data set and first observed exposure)'
+	TIME_TO_OPIOID_EXP_CENSOR='Time to opioid exposure or censoring MIN(LOOKBACK_BEFORE_INDEX_OPIOID, OBS_DAYS)'
+	ADMIT_DATE='Index diagnostic (qualifying for prevalance denominator) encounter date'
+	IndexDate='Index date for event year (date of first opioid prescription, dispensation, or diagnostic encounter)'
+	FirstOpioidDate='The first Opioid prescription or dispensation date for the patient for all time.'
+	RX_ORDER_DATE='Index opioid Prescription date'
+	Opioid_Prescription='NON-inpatient Opioid Prescription during calendar year (Y/N) ? 1st prescription for the year'
+	OPIOID_NAIVE_90D='this is intended to capture non-regular opioid users that got an opioid: For each calendar year: Opioid_Prescription = Y AND
+	NOT an opioid prescription with a start date < 91 days (including prior calendar year)
+	-- for first enrollment year must have a 90 day clean period between first ever enrollment date and opioid RX'
+	OPIOID_TRANS='Opioid_Prescription = Y AND Opioid prescription with a start date > 1 day (from Opioid_Prescription Date) and < 91 days
+	AND NOT an opioid prescription with a start date > 90 days'
+	OPIOID_CHRONIC_90D='Opioid_Prescription = Y AND
+	Opioid prescription with a start date > 1 day (from Opioid_Prescription Date) and < 91 days
+	AND an opioid prescription with a start date > 90 days'
+	DISPENSE_DATE='Dispense date'
+	Opioid_Dispensation='Two or more opioid prescriptions with two different start dates both > 1 day and < 91 days'
+	OPIOID_FLAG='Opioid Prescription or Dispensation (Y/N)'
+	opioid_any_prior='Opioid prescription with a start date > 90 days'
+	Cancer_Inpt_Dx_Year_Prior='Cancer Dx Inpatient in Year Prior (Y/N)'
+	Cancer_inpt_Dx_CY='ANY MEMBER OF CANCER DX VALUE SET IN INPATIENT VISIT (MISSING IF NOT OBSERVATION PERIOD)'
+	CANCER_PX_CURRENT_YEAR='ANY MEMBER OF CANCER PROCEDURE VALUE SET CURRENT YEAR'
+	GL_A_DENOM_FOR_ST='PATIENTS WITHOUT CANCER DX IN THE CURRENT YEAR CANCER_ANY_ENC (renamed cancer_anyencount_cy, at bottom of spreadsheet)'
+	GL_B_DENOM_FOR_ST='PATIENTS WITHOUT INPATIENT CANCER DX **OR** CANCER PROCEDURE IN THE CURRENT YEAR Cancer_inpt_Dx_CY AND CANCER_PX_CURRENT_YEAR (renamed cancer_inpt_dx_cy, at bottom of spreadsheet)'
+	Cannabis_UD_Any_CY='1 if patient is "active" in data in current year and CANO_UD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	Cocaine_UD_Any_CY='1 if patient is "active" in data in current year and COCA_UD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	Other_Stim_UD_Any_CY='1 if patient is "active" in data in current year and STIM_UD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	Hallucinogen_UD_Any_CY='1 if patient is "active" in data in current year and HALL_UD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	Inhalant_UD_Any_CY='1 if patient is "active" in data in current year and INHL_UD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	SedHypAnx_UD_Any_CY='1 if patient is "active" in data in current year and S_HYP_UD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	HepB_Dx_Any_CY='1 if patient is "active" in data in current year and HepB diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	HepC_Dx_Any_CY='1 if patient is "active" in data in current year and HepC diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	CANCER_PROC_FLAG='Cancer Procedure in Year prior (Y/N) ? within 365 days before index anchor'
+	MH_Dx_Pri_CY='1 not missing from observable data and match MH value set, 0 if patient is observed that year w/o MH dx'
+	MH_Dx_Exp_CY='Mental health exploratory calendar year'
+	MH_Dx_Pri_Year_Prior='Mental Health Dx Primary in year prior (Y/N) ? 365 days before index anchor'
+	MH_Dx_Pri_Any_Prior='Mental Health Dx Primary any prior (Y/N)'
+	MH_Dx_Exp_Year_Prior='Mental Health Dx Exploratory in year prior (Y/N) ? 365 days before index anchor'
+	MH_Dx_Exp_Any_Prior='Mental Health Dx Exploratory any prior to index exposure (Y/N)'
+	Alcohol_Use_DO_Year_Prior='Alcohol Use Disorder Dx in year prior (Y/N) ? 365 days before index anchor'
+	Alcohol_Use_DO_Any_Prior='Alcohol Use Disorder Dx any prior (Y/N)'
+	Alcohol_Use_DO_Post_Date='First Alcohol Use Disorder Date after IndexDate'
+	Substance_Use_DO_Year_Prior='Substance Use Disorder Year Prior (Y/N) ? 365 days before index anchor'
+	Substance_Use_DO_Any_Prior='Substance Use Disorder Dx any prior (Y/N)'
+	Substance_Use_DO_Post_Date='First Substance Use Disorder Date after IndexDate'
+	Opioid_Use_DO_Year_Prior='Opioid Use Disorder Year Prior (Y/N) ? 365 days before index anchor'
+	Opioid_Use_DO_Any_Prior='Opioid Use Disorder Dx any prior (Y/N)'
+	Opioid_Use_DO_Post_date='First Opioid Use Disorder Date after IndexDate'
+	TimeFromIndexOpioidToOUD='Opioid_Use_DO_Post_date - FirstOpioidDate'
+	OUD_Post_Opioid_Exp='set to 1 if TimeFromIndexOpioidToOUD is positive, 0 if negative or missing (Opioid_Use_DO_Post_date)'
+	Cannabis_Use_DO_Year_Prior='Cannabis Use Disorder Year Prior (Y/N) ? 365 days before index anchor'
+	Cannabis_Use_DO_Any_Prior='Cannabis Use Disorder Dx any prior (Y/N)'
+	Cannabis_Use_DO_Post_Date='First Cannabis Use Disorder Date after IndexDate'
+	Cocaine_Use_DO_Year_Prior='Cocaine Use Disorder Year Prior (Y/N) ? 365 days before index anchor'
+	Cocaine_Use_DO_Any_Prior='Cocaine Use Disorder Dx any prior (Y/N)'
+	Cocaine_Use_DO_Post_Date='First Cocaine Use Disorder Date after IndexDate'
+	Halluc_Use_DO_Year_Prior='Hallucinogen Use Disorder Year Prior (Y/N) ? 365 days before index anchor'
+	Halluc_Use_DO_Any_Prior='Hallucinogen Use Disorder Dx any prior (Y/N)'
+	Halluc_Use_DO_Post_Date='First Hallucinogen Use Disorder Date after IndexDate'
+	Inhalant_Use_DO_Year_Prior='Inhalant Use Disorder Year Prior (Y/N) ? 365 days before index anchor'
+	Inhalant_Use_DO_Any_Prior='Inhalant Use Disorder Dx any prior (Y/N)'
+	Inhalant_Use_DO_Post_Date='First Inhalant Use Disorder Date after IndexDate'
+	Other_Stim_Use_DO_Year_Prior='Other Stimulant Use Disorder Year Prior (Y/N) ? 365 days before index anchor'
+	Other_Stim_Use_DO_Any_Prior='Other Stimulant Use Disorder Dx any prior (Y/N)'
+	Other_Stim_Use_DO_Post_Date='First Other Stimulant Use Disorder Date after IndexDate'
+	SedHypAnx_Use_DO_Year_Prior='Sedative/Hypnotic/Anxiolytic Use Disorder Year Prior (Y/N) ? 365 days before index anchor'
+	SedHypAnx_Use_DO_Any_Prior='Sedative/Hypnotic/Anxiolytic Use Disorder Dx any prior (Y/N)'
+	SedHypAnx_Use_DO_Post_Date='First Sedative/Hypnotic/Anxiolytic Use Disorder Date after IndexDate'
+	Opioid_UD_Any_CY='1 if patient is "active" in data in current year and OUD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	Alcohol_UD_Any_CY='1 if patient is "active" in data in current year and AUD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	Substance_UD_Any_CY='1 if patient is "active" in data in current year and SUD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	HIV_Dx_Any_CY='1 if patient is "active" in data in current year and HIV diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	HepB_Dx_Any_CY='1 if patient is "active" in data in current year and HBV diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	HepC_Dx_Any_CY='1 if patient is "active" in data in current year and HCV diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	MAT_ANY_CY='1 if patient is "active" in data in current year and MAT diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	HIV_HBV_HBC_CY='1 if patient is "active" in data in current year and HIV, HBV, or HCV diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	Opioid_UD_Any_everCY='1 if patient is "active" in data in current year or any prior and OUD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	Alcohol_UD_Any_everCY='1 if patient is "active" in data in current year or any prior and AUD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	Substance_UD_Any_everCY='1 if patient is "active" in data in current year or any prior and SUD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	OUD_SUD_everCY='max of EVER_OUD and EVER_SUD'
+	OUD_SUD_CY='OUD or SUD current calendar year'
+	HIV_Dx_Any_everCY='1 if patient is "active" in data in current year or any prior HIV diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	HepB_Dx_Any_everCY='1 if patient is "active" in data in current year or any prior and HBV diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	HepC_Dx_Any_everCY='1 if patient is "active" in data in current year or any prior and HCV diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	MAT_ANY_everCY='1 if patient is "active" in data in current year current year or any prior and MAT diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	HIV_HBV_HBC_everCY='1 if patient is "active" in data in current year current year or any prior and HIV, HBV, or HCV diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year'
+	BINARY_RACE='Binary Race (White vs. Non-White)'
+	BINARY_SEX='Binary SEX (FEMALE vs. NON FEMALE)'
+	BINARY_HISPANIC='Binary HISPANIC (HISPANIC vs. OTHER)'
+	DEATH_DATE='Date of death'
+	ZOMBIE_FLAG='Flag for date of death PRIOR to event year index encounter'
+	FATAL_OVERDOSE='Fatal Overdose ? Will only have date of death, cause of death not integrated into PCORI. In addition, will likely only have death as discharge disposition (not external death). Try deceased + OUD DX same date.'
+	DaysToDeath='Time elapsed between opioid exposure & death'
+	DEATH_COMPLETE='Externally available death data at site in curent year?'
+	ED_OD_PRE='Nonfatal Overdose (ED visit administrative code) prior to index exposure'
+	ED_OD_PRE_DATE='Nonfatal Overdose date (ED visit administrative code) prior to index exposure'
+	ED_OD_POST='Nonfatal Overdose (ED visit administrative code) after index exposure'
+	ED_OD_POST_DATE='Nonfatal Overdose date (ED visit administrative code) after index exposure'
+	OD_PRE='Any overdose prior to index exposure'
+	OD_PRE_DATE='Date of last overdose prior to index exposure'
+	OD_POST='Any overdose after index exposure'
+	OD_POST_DATE='Date of first overdose after index exposure'
+	PAST_OD='overdose ever (regardless of opioid RX)'
+	FATAL_OD_CURRENT_YEAR='FATAL OD CURRENT YEAR'
+	NONFATAL_OD_CY='NONFATAL OD CURRENT YEAR'
+	OD_CY='Any OD current year'
+	SUICIDE_PRE='Any suicide prior to index exposure'
+	SUICIDE_PRE_DATE='Date of last suicide prior to index exposure'
+	SUICIDE_POST='Any suicide after index exposure'
+	SUICIDE_POST_DATE='Date of first suicide after index exposure'
+	SMOKING='Smoking'
+	CHRONIC_OPIOID_DATE='index date of non-inpatient chronic opioid use'
+	CHRONIC_OPIOID='Chronic Opioids any 3 non inpatient opioid {3 rx or 3 disp.} with third one in current calendar year'
+	CHRONIC_OPIOID_CURR_PRIOR='chronic opioids current or prior year'
+	CHRONIC_OPIOID_everCY='1 if date is greater than first CHRONIC_OPIOID_DATE, 0 otherwise, missing if patient is not observed using year(chronic_opioid_date)<=eventyear'
+	CHRONIC_OPIOID_CY='Based on a meeting iwth Daniella, I also added year(chronic_opioid_date)=eventyear'
+	HIV_Dx_Year_Prior='HIV year prior (365 days)'
+	HIV_Dx_Any_Prior='HIV any prior'
+	HIV_Dx_Post_Date='HIV any time after index exposure'
+	HepB_Dx_Year_Prior='Hep B year prior (365 days)'
+	HepB_Dx_Any_Prior='Hep B any prior'
+	HepB_Dx_Post_Date='Hepatitis B Virus any time after index exposure'
+	HepC_Dx_Year_Prior='Hep C year prior (365 days)'
+	HepC_Dx_Any_Prior='Hep C any prior'
+	HepC_Dx_Post_Date='Hepatitis C Virus any time after index exposure'
+	ANY_STD_Year_Prior='any HIV, HEPB, HEPC, current or prior year'
+	UDS_CPT='Urine Drug Screen by CPT code (Y/N/NA) in the year NA if none of these codes appear in the organization-year.'
+	UDS_LOINC='Urine Drug Screen by LOINC code (Y/N/NA) (LOINC codes were not in the LOINC to include so they will not be in VA Result data which was pulled by LOINC codes, Louisiana thought they did have drug screens in their data) NA if site does not capture LOINC codes of any kind.'
+	UDS_FLAG='Urine Drug Screen (Y/N/NA) ? merged result of CPT and LOINC code variables'
+	NALOXONE_INFERRED_RESCUE='Naloxone ED Prescription or Dispensing or Admin (Y/N)'
+	NALOXONE_PRESCRIBE_RESCUE='Naloxone Prescription (y/n)'
+	NALOXONE_DISPENSE_RESCUE='Naloxone Dispensation (Y/N)'
+	NALOXONE_ADMIN_RESCUE='Naloxone MED_ADMIN for sites that have med admin only'
+	NALOX_AMBULATORY='Naloxone in ambulatory (dispensing or prescribing, but not admin) (y/n)'
+	NALOX_AMBULATORY_DATE='Naloxone in ambulatory (dispensing or prescribing, but not admin) first event date for EventYear'
+	NALOX_OPIOID_CO_RX='1 if ANY records where patient-date of Opioid Value Set match in PRESCRIBING table is same as naloxone_ambulatory (not just the first of the year, but any time in year), 0 otherwise'
+	CT_NALOXONE_RESCUE='Count of Any Naloxone Rescue'
+	ED_YR='ED visit current year'
+	IP_YR='IP visit current year'
+	ED_IP_YR='ED or IP visit in current year'
+	ANY_ENC_CY='ANY encoutner current_year (should be 0 if patient is not in the observation period)'
+	BDZ_Presc_3mo='Benzodiazepine Prescription +/- 3 months of IndexDate'
+	BDZ_Disp_3mo='Benzodiazepine Dispensation +/- 3 months of IndexDate'
+	BDZ_3MO='Benzodiazepine Rx OR DISPENSING within 3 months +/- opioid RX date (Y/N) ? the 3 month look-back/look-ahead is not confined to the calendar year'
+	BUP_PRESC_PRE='Buprenorphine Prescription in 365 days prior to index date (Y/N)'
+	BUP_PRESC_PRE_DATE='Date of last Buprenorphine Prescription in the 365 days prior to index date'
+	BUP_PRESC_POST='Buprenorphine Prescription in 365 days after index date (Y/N)'
+	BUP_PRESC_POST_DATE='Date of first Buprenorphine Prescription in the 365 days after index date'
+	BUP_DISP_PRE='Buprenorphine Dispensation in 365 days prior to index date(Y/N)'
+	BUP_DISP_PRE_DATE='Date of last Buprenorphine Dispensation in the 365 days prior to index date'
+	BUP_DISP_POST='Buprenorphine Dispensation in 365 days after index date(Y/N)'
+	BUP_DISP_POST_DATE='Date of first Buprenorphine Dispensation in the 365 days after index date'
+	BUP_ANY_CY='Any Buprenorphine RX or DISP in current calendar year'
+	BUP_DISP_CY='Any Buprenorphine DISP in current calendar year'
+	BUP_PRESC_CY='Any Buprenorphine RX in current calendar year'
+	BUP_DISP_everCY='Any Buprenorphine DISP ever in current calendar year'
+	BUP_PRESC_everCY='Any Buprenorphine RX ever in current calendar year'
+	NALTREX_ANY_CY='ANY Naltrexone RX or DISP in Current year'
+	NALTREX_DISP_CY='ANY Naltrexone DISP in Current year'
+	NALTREX_PRESC_CY='ANY Naltrexone RX in Current year'
+	NALTREX_DISP_everCY='ANY Naltrexone DISP ever in Current year'
+	NALTREX_PRESC_everCY='ANY Naltrexone RX ever in Current year'
+	MAT_ANY_CY='BUP or NALTREXONE RX or DISP in current year'
+	METHADONE_ANY_CY='ANY Methodone/RX or DISP in current year'
+	NALTREX_PRESC_PRE='Naltrexone Prescription in 365 days prior to index date (Y/N)'
+	NALTREX_PRESC_PRE_DATE='Date of last Naltrexone Prescription in the 365 days prior to index date'
+	NALTREX_PRESC_POST='Naltrexone Prescription in 365 days after index date (Y/N)'
+	NALTREX_PRESC_POST_DATE='Date of first Naltrexone Prescription in the 365 days after index date'
+	NALTREX_DISP_PRE='Naltrexone Dispensation in 365 days prior to index date(Y/N)'
+	NALTREX_DISP_PRE_DATE='Date of last Naltrexone Dispensation in the 365 days prior to index date'
+	NALTREX_DISP_POST='Naltrexone Dispensation in 365 days after index date(Y/N)'
+	NALTREX_DISP_POST_DATE='Date of first Naltrexone Dispensation in the 365 days after index date'
+	METHADONE_PRESC_PRE='Methadone Prescription in 365 days prior to index date (Y/N)'
+	METHADONE_PRESC_PRE_DATE='Date of last Methadone Prescription in the 365 days prior to index date'
+	METHADONE_PRESC_POST='Methadone Prescription in 365 days after index date (Y/N)'
+	METHADONE_PRESC_POST_DATE='Date of first Methadone Prescription in the 365 days after index date'
+	METHADONE_DISP_PRE='Methadone Dispensation in 365 days prior to index date(Y/N)'
+	METHADONE_DISP_PRE_DATE='Date of last Methadone Dispensation in the 365 days prior to index date'
+	METHADONE_DISP_POST='Methadone Dispensation in 365 days after index date(Y/N)'
+	METHADONE_DISP_POST_DATE='Date of last Methadone Dispensation in the 365 days prior to index date'
+	Cancer_AnyEncount_CY='Cancer any encounter calendar year'
+	CHRONIC_OPIOID_IND='chronic_opioid_evercy=1 and gl_b_denom_for_st=1'
+	CT_NALOXONE_ADMIN_CUI='Naloxone admin CUI count'
+	CT_NALOXONE_ADMIN_NDC='Naloxone admin ndc count'
+	CT_NALOXONE_DISPENSE='naclxone dispense count'
+	CT_NALOXONE_PRESCRIBE='Naloxone prescribe count'
+	BIRTH_DATE='Birth date'
+	Chemo_AnyEncount_Year_Prior='Chemo any encounter year prior'
+	DISPENSINGID='Dispensing ID'
+	DataMartID='Datamart ID'
+	Dispensing_NDC='Dispensing NDC'
+	ED_OD_CY='ED OD calendar year'
+	ENC_TYPE='Encounter type'
+	enr_start_date='Enrollment start date'
+	PRESCRIBING_NDC='Prescribing NDC'
+	RXNORM_CUI='RxNorm CUI'
+	RAD_ANYENCOUNT_YEAR_PRIOR='Radiation any encounter year prior'
+	cancer_anyenc_dx_year_prior='Cancer any encounter Dx Inpatient in Year Prior (Y/N)'
+	OPIOID_EXP_IND='OPIOID_FLAG=1 and GL_B_DENOM_FOR_ST=1'
 ;
 run;
+
+
+*clean up;
+proc sql;
+	drop table dmlocal.aesop1, dmlocal.aesop2, dmlocal.opioid_flat_file_pre, dmlocal.opioid_flat_file_pre2, dmlocal.opioid_flat_file_pre3, dmlocal.opioid_flat_file_pre4;
+quit;
 
 
 
