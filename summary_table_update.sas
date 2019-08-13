@@ -156,8 +156,9 @@ QUIT;
 /*SUMMARY TABLE -SUD current*/
 %tab(opioid_flat_file_sud, substance_ud_any_cy)
 %summary(opioid_flat_file_sud,sum_sud)
-/*SUMMARY TABLE -AUD Only*/
+/*SUMMARY TABLE -AUD current*/
 %tab(opioid_flat_file_aud, alcohol_ud_any_cy)
 %summary(opioid_flat_file_aud,sum_aud)
-
-
+/*SUMMARY TABLE - OPIOID EXPOSURE */
+%tab(opioid_flat_file_oep, OPIOID_EXP_IND)
+%summary(opioid_flat_file_oep,sum_opioid_exposure)
