@@ -141,24 +141,25 @@ QUIT;
 /*SUMMARY TABLE - Guideline B*/
 %tab(opioid_flat_file_GL_B, GL_B_DENOM_FOR_ST) 
 %summary(opioid_flat_file_GL_B,sum_all_GL_B)
+/*SUMMARY TABLE - OPIOID EXPOSURE */
+%tab(opioid_flat_file_oep, OPIOID_EXP_IND)
+%summary(opioid_flat_file_oep,sum_opioid_exposure)
 /*SUMMARY TABLE - CHRONIC OPIOID USE*/
 %tab(opioid_flat_file_cou, CHRONIC_OPIOID_IND) 
 %summary(opioid_flat_file_cou,sum_chronic_opioid)
 /*SUMMARY TABLE - OUD current*/
-%tab(opioid_flat_file_oud, opioid_ud_any_cy)   
-%summary(opioid_flat_file_oud,sum_oud);
+%tab(opioid_flat_file_oud, oud_ind)   
+%summary(opioid_flat_file_oud,sum_oud)
 /*SUMMARY TABLE -OVERDOSE current*/
-%tab(opioid_flat_file_odh, od_cy)
+%tab(opioid_flat_file_odh, overdose_ind)
 %summary(opioid_flat_file_odh,sum_overdose)
 /*SUMMARY TABLE -OUD or SUD current*/
-%tab(opioid_flat_file_osud, oud_sud_cy)
+%tab(opioid_flat_file_osud, oud_sud_ind)
 %summary(opioid_flat_file_osud,sum_osud)
 /*SUMMARY TABLE -SUD current*/
-%tab(opioid_flat_file_sud, substance_ud_any_cy)
+%tab(opioid_flat_file_sud, substance_ind)
 %summary(opioid_flat_file_sud,sum_sud)
 /*SUMMARY TABLE -AUD current*/
-%tab(opioid_flat_file_aud, alcohol_ud_any_cy)
+%tab(opioid_flat_file_aud, alcohol_ind)
 %summary(opioid_flat_file_aud,sum_aud)
-/*SUMMARY TABLE - OPIOID EXPOSURE */
-%tab(opioid_flat_file_oep, OPIOID_EXP_IND)
-%summary(opioid_flat_file_oep,sum_opioid_exposure)
+
