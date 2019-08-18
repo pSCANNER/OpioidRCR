@@ -3,7 +3,6 @@
 2 -- VERIFY THAT AESOPS VARIABLES ARE 0 FOR ALL PATIENTS W/ OPIOID RX IN THE EVENT YEAR AND NOT MISSINIG
 3 -- PROVIDE JASON OPIOID RX DATES AND AESOPS VARIABLES TO CASE CHECK DATE SEQUENCE FOR 3 PATIENTS FOR AESOPS VARIABLES, ONE WITHOUT 728 AND TWO WITH. 
 4 -- CHECK AND UPDATE ALL VALUE SETS FOR OPIOIDS AND NALOXONE (NALOXONE LOOKS SUSPICIOUSLY LOW)
-5 -- FIX BUG IN first_ever_op_chron90d
 */
 
 /* DONE 
@@ -1953,7 +1952,7 @@ proc sql;
 quit;
 *pull out first chronic opioid per patient;
 
-* only 2 patients in first_ever_op_chron90d in v1 of summary tables. 
+  
 data dmlocal.aesop8;
 	set dmlocal.aesop7;
 	where OPIOID_chronic_90D=1;
