@@ -1,8 +1,13 @@
 /* TODO
-1 -- TEST UPDATE TO ZIP CODE CARRYFORWARD MADE BELOW TO ADD SORT STATEMENT
+1 -- TEST DM UPDATE TO MV CARRYFORWARD (+EXPLICIT SORTING STATEMENTS ~line 2346)
 2 -- VERIFY THAT AESOPS VARIABLES ARE 0 FOR ALL PATIENTS W/ OPIOID RX IN THE EVENT YEAR AND NOT MISSINIG
-3 -- 
+3 -- CASE CHECK DATE SEQUENCE FOR 3 PATIENTS FOR AESOPS VARIABLES, ONE WITHOUT 728 AND TWO WITH. 
+4 -- CHECK AND UPDATE ALL VALUE SETS FOR OPIOIDS AND NALOXONE (NALOXONE LOOKS SUSPICIOUSLY LOW)
+*/
 
+/* DONE 
+1 -- REVIEW MISSINIG DATA CARRYFORWARD FOR ISSUES AND DRAFT UPDATE
+2 -- UPDATED GOOGLE DOC FOR OPIOIDS, BUT HAVE NOT UPDATED SAS
 */
 
 proc printto log="&DRNOC.Opioid_RCR.log" new; run;
@@ -1845,7 +1850,8 @@ quit;
 *Pull distinct dates for AESOPS before incorporating;
 proc sql;
 	create table dmlocal.aesop1 as
-	select * , case when enr_start_date<=rx_order_date<=enr_end_date then 1 else 0 end as within_enr /*check and make sure all RX dates are within enrollment dates*/
+	select * , case when enr_start_date<=rx_order_date<=enr_end_date then 1 else 0 end as within_enr 
+	/*check and make sure all RX dates are within enrollment dates*/
 	from
 	(select distinct a.patid, a.eventyear, a.rx_order_date, b.enr_start_date, b.enr_end_date, c.FirstOpioidDate format=DATE9.
 	from dmlocal.prescribing_events_all as a
@@ -1860,6 +1866,7 @@ proc sql;
 	;
 quit;
 *create indicator for first obs per patient and count of rx per year;
+*consider adding sortedby here for sanity check
 data dmlocal.aesop2 ;
 	set dmlocal.aesop1;
 	format prev_date1 prev_date2 last_728D DATE9.;
@@ -1910,6 +1917,7 @@ proc sql;
 	order by patid, eventyear, rx_order_date;
 quit;
 *indicate chronic in the last 728 days;
+*dm - I think this will fail to catch the patients that are "newly naieve" aftert he 728 days have passed.  
 data dmlocal.aesop6;
 	set dmlocal.aesop5;
 	by patid eventyear rx_order_date;
@@ -2339,11 +2347,11 @@ quit;
 
 /* NOTE THAT DATA MUST BE SORTED BY PATIENT AND DATE FOR THIS TO WORK
 MAKING IT EXPLICIT HERE SO WE DON'T RELY ON SQL ORDER BY ABOVE */
-proc proc sort data=dmlocal.opioid_flat_file_pre3;
+proc sort data=dmlocal.opioid_flat_file_pre3;
    by patid EVENTYEAR;
 run;
 
-data dmlocal.opioid_flat_file_pre3
+data dmlocal.opioid_flat_file_pre3(sortedby=patid eventyear)
 	drop temp;
 	set dmlocal.opioid_flat_file_pre2;
 	by patid;
