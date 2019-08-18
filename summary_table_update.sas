@@ -1,4 +1,11 @@
-
+/* TODO
+**Review updates and checks requested on flat file**
+1 -- DO NOT STRATIFY BY FACILITY LOCATION AND STATE IN THE SAME TABLE. ONLY INCLUDE FACILITY LOCATION IN ALL X ALL AND USE STATE IN ALL OTHERS. 
+2 -- REPLACE "Facility_location x Eventyear x State" WITH A "YEAR ONLY" TABLE WITH NO OTHER STRATA (TO HELP DEBUG)
+3 -- USING THE ENROLLMENT ROUTINE IN THE FLAT FILE, ADD AN INDICATOR FOR "ENROLLED" AND USE THAT TO GENERATE THE N WHERE CURRENTLY USING COUNT(*)
+4 -- ADD A RT_&var THAT IS COUNT/COUNT-NON-MISSING SO THAT THIS DOES NOT NEED TO BE CREATED POST-HOC 
+ 
+*/
 proc printto log="&DRNOC.Opioid_RCR.log"; 
 run;
 
@@ -28,6 +35,7 @@ quit;
 %let var=%scan(&varlist,&k);
 %do %while ("&var" NE "");
 
+/*  */
 proc sql noprint;
 create table sum_&k as
 select "ALL x ALL" as Type length=50, facility_location, state, race, sex, hispanic, AGEGRP1, eventyear,
