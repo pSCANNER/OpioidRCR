@@ -35,7 +35,8 @@ quit;
 %let var=%scan(&varlist,&k);
 %do %while ("&var" NE "");
 
-/*  */
+/* COUNT(*) SHOULD BE THENUMBER OF ENROLLED PATIENTS IN THE YEAR.
+IT IS NOT CHANGING NOW - ADD "ENROLLED" VARIABLE TO FLAT FILE TO ENSURE IT IS ACCURATE? */
 proc sql noprint;
 create table sum_&k as
 select "ALL x ALL" as Type length=50, facility_location, state, race, sex, hispanic, AGEGRP1, eventyear,
