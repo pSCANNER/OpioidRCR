@@ -1,3 +1,10 @@
+/* TODO
+1 -- TEST UPDATE TO ZIP CODE CARRYFORWARD MADE BELOW TO ADD SORT STATEMENT
+2 -- VERIFY THAT AESOPS VARIABLES ARE 0 FOR ALL PATIENTS W/ OPIOID RX IN THE EVENT YEAR AND NOT MISSINIG
+3 -- 
+
+*/
+
 proc printto log="&DRNOC.Opioid_RCR.log" new; run;
 
 %let StudyStartDate = 18263;	*2010-01-01 Inclusive;
@@ -2329,7 +2336,14 @@ quit;
 
 *Daniella's code for re-coding for facility code, will merge in state data below;
 * Carry forward missing 3-digit location--only for years within enrollment;
-data dmlocal.opioid_flat_file_pre3;
+
+/* NOTE THAT DATA MUST BE SORTED BY PATIENT AND DATE FOR THIS TO WORK
+MAKING IT EXPLICIT HERE SO WE DON'T RELY ON SQL ORDER BY ABOVE */
+proc proc sort data=dmlocal.opioid_flat_file_pre3;
+   by patid EVENTYEAR;
+run;
+
+data dmlocal.opioid_flat_file_pre3
 	drop temp;
 	set dmlocal.opioid_flat_file_pre2;
 	by patid;
@@ -2617,7 +2631,7 @@ label ED_IP_YR='ED or IP visit in current year';
 label ANY_ENC_CY='ANY encoutner current_year (should be 0 if patient is not in the observation period)';
 label BDZ_Presc_3mo='Benzodiazepine Prescription +/- 3 months of IndexDate';
 label BDZ_Disp_3mo='Benzodiazepine Dispensation +/- 3 months of IndexDate';
-label BDZ_3MO='Benzodiazepine Rx OR DISPENSING within 3 months +/- opioid RX date (Y/N) ? the 3 month ‘look-back/look-ahead’ is not confined to the calendar year';
+label BDZ_3MO='Benzodiazepine Rx OR DISPENSING within 3 months +/- opioid RX date (Y/N) ? the 3 month Â‘look-back/look-aheadÂ’ is not confined to the calendar year';
 label BUP_PRESC_PRE='Buprenorphine Prescription in 365 days prior to index date (Y/N)';
 label BUP_PRESC_PRE_DATE='Date of last Buprenorphine Prescription in the 365 days prior to index date';
 label BUP_PRESC_POST='Buprenorphine Prescription in 365 days after index date (Y/N)';
