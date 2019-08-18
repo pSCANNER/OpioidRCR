@@ -3,11 +3,12 @@
 2 -- VERIFY THAT AESOPS VARIABLES ARE 0 FOR ALL PATIENTS W/ OPIOID RX IN THE EVENT YEAR AND NOT MISSINIG
 3 -- PROVIDE JASON OPIOID RX DATES AND AESOPS VARIABLES TO CASE CHECK DATE SEQUENCE FOR 3 PATIENTS FOR AESOPS VARIABLES, ONE WITHOUT 728 AND TWO WITH. 
 4 -- CHECK AND UPDATE ALL VALUE SETS FOR OPIOIDS AND NALOXONE (NALOXONE LOOKS SUSPICIOUSLY LOW)
+5 -- FIX BUG IN first_ever_op_chron90d
 */
 
 /* DONE 
 1 -- REVIEW MISSINIG DATA CARRYFORWARD FOR ISSUES AND DRAFT UPDATE
-2 -- UPDATED GOOGLE DOC FOR OPIOIDS, BUT HAVE NOT UPDATED SAS
+2 -- UPDATED GOOGLE SHEET FOR OPIOIDS VALUE SETS, BUT HAVE NOT UPDATED SAS YET
 */
 
 proc printto log="&DRNOC.Opioid_RCR.log" new; run;
@@ -1866,7 +1867,7 @@ proc sql;
 	;
 quit;
 *create indicator for first obs per patient and count of rx per year;
-*consider adding sortedby here for sanity check
+
 data dmlocal.aesop2 ;
 	set dmlocal.aesop1;
 	format prev_date1 prev_date2 last_728D DATE9.;
@@ -1917,7 +1918,9 @@ proc sql;
 	order by patid, eventyear, rx_order_date;
 quit;
 *indicate chronic in the last 728 days;
-*dm - I think this will fail to catch the patients that are "newly naieve" aftert he 728 days have passed.  
+/*
+may need to rework this if . 
+*/
 data dmlocal.aesop6;
 	set dmlocal.aesop5;
 	by patid eventyear rx_order_date;
@@ -1949,11 +1952,14 @@ proc sql;
 	group by patid, eventyear;
 quit;
 *pull out first chronic opioid per patient;
+
+* only 2 patients in first_ever_op_chron90d in v1 of summary tables. 
 data dmlocal.aesop8;
 	set dmlocal.aesop7;
 	where OPIOID_chronic_90D=1;
 	by patid eventyear;
 	if first.patid then first_ever_op_chron_90d=1;
+
 run;
 /** New--Create SAS data file dmlocal.aesop;*/
 /**new variables added:  first_ever_op_chron_90d;*/
