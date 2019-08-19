@@ -8,6 +8,11 @@
 /* DONE 
 1 -- REVIEW MISSINIG DATA CARRYFORWARD FOR ISSUES AND DRAFT UPDATE
 2 -- UPDATED GOOGLE SHEET FOR OPIOIDS VALUE SETS, BUT HAVE NOT UPDATED SAS YET
+     Not sure what needs to be done, all AESOPS variables are 0 if patients have opiod RX but do not meet specified flags
+3 -- Data provided to Jason
+
+5 --Added enrolled indicator. Code tested for subset data (no issues), but not on full data set yet.
+
 */
 
 proc printto log="&DRNOC.Opioid_RCR.log" new; run;
