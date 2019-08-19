@@ -4,7 +4,15 @@
 2 -- REPLACE "Facility_location x Eventyear x State" WITH A "YEAR ONLY" TABLE WITH NO OTHER STRATA (TO HELP DEBUG)
 3 -- USING THE ENROLLMENT ROUTINE IN THE FLAT FILE, ADD AN INDICATOR FOR "ENROLLED" AND USE THAT TO GENERATE THE N WHERE CURRENTLY USING COUNT(*)
 4 -- ADD A RT_&var (RATE) THAT IS COUNT/COUNT-NON-MISSING SO THAT THIS DOES NOT NEED TO BE CREATED POST-HOC 
- 
+
+08/19/19: Caron
+0-Counts should be correct, please specify which summary table is having this issue
+1-Updates made to the code
+2-Updates made to the code
+3-Will be added to the flat files once Daniella responds to email
+4-Added to the code
+
+Will re-run summary tables on full data once I am able to make updates to the flat file
 */
 proc printto log="&DRNOC.Opioid_RCR.log"; 
 run;
@@ -42,64 +50,71 @@ create table sum_&k as
 select "ALL x ALL" as Type length=50, facility_location, state, race, sex, hispanic, AGEGRP1, eventyear,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
-sum(&var) as n_&var "total number of positive values in &var"
+sum(&var) as n_&var "total number of positive values in &var",
+sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
 from DMLocal.&tablenm
-group by facility_location, state, race, sex, hispanic, AGEGRP1, eventyear
-order by facility_location, state, race, sex, hispanic, AGEGRP1, eventyear;
+group by facility_location, race, sex, hispanic, AGEGRP1, eventyear
+order by facility_location, race, sex, hispanic, AGEGRP1, eventyear;
 
 create table sum2_&k as
-select "Facility_location x Eventyear x State" as Type, facility_location, state, eventyear,
+select "Eventyear x State" as Type, facility_location, state, eventyear,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
-sum(&var) as n_&var "total number of positive values in &var"
+sum(&var) as n_&var "total number of positive values in &var",
+sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
 from DMLocal.&tablenm
-group by facility_location, state, eventyear
-order by facility_location, state, eventyear;
+group by eventyear, state
+order by eventyear, state;
 
 create table sum3_&k as
-select "State x Eventyear" as Type, state, eventyear,
+select "Eventyear x Race" as Type, state, eventyear,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
-sum(&var) as n_&var "total number of positive values in &var"
+sum(&var) as n_&var "total number of positive values in &var",
+sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
 from DMLocal.&tablenm
-group by state, eventyear
-order by state, eventyear;
+group by eventyear, race
+order by eventyear, race;
 
 create table sum4_&k as
-select "Race x Eventyear x State" as Type, race, eventyear, state,
+select "Eventyear x Sex" as Type, race, eventyear, state,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
-sum(&var) as n_&var "total number of positive values in &var"
+sum(&var) as n_&var "total number of positive values in &var",
+sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
 from DMLocal.&tablenm
-group by race, eventyear, state
-order by race, eventyear, state;
+group by eventyear, sex
+order by eventyear, sex;
 
 create table sum5_&k as
-select "Sex x Eventyear x State" as Type, sex, eventyear, state,
+select "Eventyear x Hispanic" as Type, sex, eventyear, state,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
-sum(&var) as n_&var "total number of positive values in &var"
+sum(&var) as n_&var "total number of positive values in &var",
+sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
 from DMLocal.&tablenm
-group by sex, eventyear, state
-order by sex, eventyear, state;
+group by eventyear, hispanic
+order by eventyear, hispanic;
 
 create table sum6_&k as
-select "Hispanic x Eventyear x State" as Type, hispanic, eventyear, state,
+select "Eventyear x Agegrp1" as Type, hispanic, eventyear, state,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
-sum(&var) as n_&var "total number of positive values in &var"
+sum(&var) as n_&var "total number of positive values in &var",
+sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
 from DMLocal.&tablenm
-group by hispanic, eventyear, state
-order by hispanic, eventyear, state;
+group by eventyear, AGEGRP1
+order by eventyear, AGEGRP1;
 
 create table sum7_&k as
-select "Agegrp1 x Eventyear x State" as Type, AGEGRP1, eventyear, state,
+select "Eventyear" as Type, AGEGRP1, eventyear, state,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
-sum(&var) as n_&var "total number of positive values in &var"
+sum(&var) as n_&var "total number of positive values in &var",
+sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
 from DMLocal.&tablenm
-group by AGEGRP1, eventyear, state
-order by AGEGRP1, eventyear, state;
+group by eventyear
+order by eventyear;
 quit;
 
 proc append base=sum_&k data=sum2_&k force nowarn; run;
