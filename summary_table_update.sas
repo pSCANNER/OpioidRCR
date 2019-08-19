@@ -47,7 +47,7 @@ quit;
 IT IS NOT CHANGING NOW - ADD "ENROLLED" VARIABLE TO FLAT FILE TO ENSURE IT IS ACCURATE? */
 proc sql noprint;
 create table sum_&k as
-select "ALL x ALL" as Type length=50, facility_location, race, sex, hispanic, AGEGRP1, eventyear,
+select "ALL x ALL" as Type length=50, facility_location, race, sex, hispanic, AGEGRP1, eventyear,state,
 count(*) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
 sum(&var) as n_&var "total number of positive values in &var",
