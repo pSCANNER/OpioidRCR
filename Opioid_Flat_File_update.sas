@@ -2319,10 +2319,11 @@ data dmlocal.dummy_enroll_1;
 	set indata.enrollment ;
 	start_year=year(enr_start_date);
 	end_year=year(enr_end_date);
+	enroll=1;
 	do EVENTYEAR=start_year to end_year;
 		output;
 	end;
-	keep PATID EVENTYEAR enr_start_date;
+	keep PATID EVENTYEAR enr_start_date enroll;
 run;
 
 *for 2010 to 2017;
@@ -2406,9 +2407,9 @@ quit;
 *need to re-add datamartid;
 * new variables: binary_race, binary_sex, binary_hispanic, TimeFromIndexOpioidToOUD, 
 	AESOPS variables: OPIOID_chronic_90D, OPIOID_naive_90D_0, OPIOID_naive_90D_1, OPIOID_naive_90D_2, OPIOID_naive_90D_3, OPIOID_naive_90D_4,OPIOID_TRANS_180D_0, OPIOID_TRANS_180D_1, 
-	OPIOID_TRANS_180D_2, OPIOID_TRANS_180D_3, OPIOID_TRANS_180D_4,first_ever_op_chron_90d, GL_A_DENOM_FOR_ST, GL_B_DENOM_FOR_ST;
+	OPIOID_TRANS_180D_2, OPIOID_TRANS_180D_3, OPIOID_TRANS_180D_4,first_ever_op_chron_90d, GL_A_DENOM_FOR_ST, GL_B_DENOM_FOR_ST, enrolled;
 proc sql;
-	create table dmlocal.opioid_flat_file (drop=GL_A_DENOM_FOR_ST_rev GL_B_DENOM_FOR_ST_rev) as
+	create table dmlocal.opioid_flat_file (drop=GL_A_DENOM_FOR_ST_rev GL_B_DENOM_FOR_ST_rev enroll) as
 	select distinct * from
 	(select a.*, b.ADMIT_DATE , b.Alcohol_Use_DO_Post_Date , b.BUP_DISP_POST_DATE , b.BUP_DISP_PRE_DATE , b.BUP_PRESC_POST_DATE , b.BUP_PRESC_PRE_DATE  
 		, b.CHRONIC_OPIOID_DATE , b.Cannabis_Use_DO_Post_Date , b.Cocaine_Use_DO_Post_Date  , b.DISPENSE_DATE  , b.DaysToDeath , b.ED_OD_POST_DATE , b.ED_OD_PRE_DATE 
@@ -2419,6 +2420,7 @@ proc sql;
 		, b.suicide_post_date , b.suicide_pre_date , b.sedhypanx_use_do_post_date , b.substance_use_do_post_date, b.enr_start_date
 		,case when a.GL_A_DENOM_FOR_ST_rev=1 then 0 when a.GL_A_DENOM_FOR_ST_rev=0 then 1 else . end as GL_A_DENOM_FOR_ST /*new*/
 		,case when a.GL_B_DENOM_FOR_ST_rev=1 then 0 when a.GL_B_DENOM_FOR_ST_rev=0 then 1 else . end as GL_B_DENOM_FOR_ST /*new*/
+		,case when a.enroll=1 then 1 else 0 end as enrolled /*new*/
 		, c.race, c.sex, c.hispanic, c.birth_date, c.death_date, int(yrdif(c.BIRTH_DATE, MDY(7, 1, a.EventYear), 'AGE')) as AgeAsOfJuly1
 		, case when calculated AgeAsOfJuly1 >= 0 and calculated AgeAsOfJuly1 < 15 then '0-14'
   		when calculated AgeAsOfJuly1 >= 15 and calculated AgeAsOfJuly1 < 20 then '15-19'
@@ -2701,6 +2703,7 @@ label oud_ind='Opioid_UD_Any_CY=1 and GL_B_DENOM_FOR_ST=1';
 label substance_ind='Substance_UD_Any_CY=1 and GL_B_DENOM_FOR_ST=1';
 label alcohol_ind='Alcohol_UD_Any_CY=1 and GL_B_DENOM_FOR_ST=1';
 label overdose_IND='GL_B_DENOM_FOR_ST=1 and (Opioid_UD_Any_Cy=1 or OD_CY=1)';
+label enrolled='Indicates year a patient is enrolled, includes all years between enrollment start and end date.';
 run;
 
 
