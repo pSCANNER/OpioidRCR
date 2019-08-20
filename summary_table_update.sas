@@ -9,7 +9,7 @@
 0-Counts should be correct, please specify which summary table is having this issue
 1-Updates made to the code
 2-Updates made to the code
-3-Will be added to the flat files once Daniella responds to email
+3-Enrollment variable added to flat file, and count(*) was replaced with sum(enrolled) as instructed by Daniella
 4-Added to the code
 
 Will re-run summary tables on full data once I am able to make updates to the flat file
@@ -48,7 +48,7 @@ IT IS NOT CHANGING NOW - ADD "ENROLLED" VARIABLE TO FLAT FILE TO ENSURE IT IS AC
 proc sql noprint;
 create table sum_&k as
 select "ALL x ALL" as Type length=50, facility_location, race, sex, hispanic, AGEGRP1, eventyear,state,
-count(*) as n "total number of the observations",
+sum(enrolled) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
 sum(&var) as n_&var "total number of positive values in &var",
 sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
@@ -58,7 +58,7 @@ order by facility_location, race, sex, hispanic, AGEGRP1, eventyear;
 
 create table sum2_&k as
 select "Eventyear x State" as Type, state, eventyear,
-count(*) as n "total number of the observations",
+sum(enrolled) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
 sum(&var) as n_&var "total number of positive values in &var",
 sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
@@ -68,7 +68,7 @@ order by eventyear, state;
 
 create table sum3_&k as
 select "Eventyear x Race" as Type, race, eventyear,
-count(*) as n "total number of the observations",
+sum(enrolled) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
 sum(&var) as n_&var "total number of positive values in &var",
 sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
@@ -78,7 +78,7 @@ order by eventyear, race;
 
 create table sum4_&k as
 select "Eventyear x Sex" as Type, sex, eventyear,
-count(*) as n "total number of the observations",
+sum(enrolled) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
 sum(&var) as n_&var "total number of positive values in &var",
 sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
@@ -88,7 +88,7 @@ order by eventyear, sex;
 
 create table sum5_&k as
 select "Eventyear x Hispanic" as Type, hispanic, eventyear,
-count(*) as n "total number of the observations",
+sum(enrolled) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
 sum(&var) as n_&var "total number of positive values in &var",
 sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
@@ -98,7 +98,7 @@ order by eventyear, hispanic;
 
 create table sum6_&k as
 select "Eventyear x Agegrp1" as Type, agegrp1, eventyear, 
-count(*) as n "total number of the observations",
+sum(enrolled) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
 sum(&var) as n_&var "total number of positive values in &var",
 sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
@@ -108,7 +108,7 @@ order by eventyear, AGEGRP1;
 
 create table sum7_&k as
 select "Eventyear" as Type, eventyear,
-count(*) as n "total number of the observations",
+sum(enrolled) as n "total number of the observations",
 nmiss(&var) as nm_&var "number of the missing values in &var",
 sum(&var) as n_&var "total number of positive values in &var",
 sum(&var)/(count(*)-nmiss(&var)) as r_&var "Rate of &var"
