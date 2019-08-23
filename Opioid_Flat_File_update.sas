@@ -12,7 +12,7 @@
 3 -- Data provided to Jason
 
 5 --Added enrolled indicator. Code tested for subset data (no issues), but not on full data set yet.
-8/23/19--Fixed bup_presc_evercy and bup_disp_evercy code.
+8/23/19--Fixed bup_presc_evercy and bup_disp_evercy code. Saw similar discrepanies and fixed evercy variables for hepb, hepc, hiv, and naltrex.
 
 */
 
@@ -829,11 +829,9 @@ QUIT;
 *new variables added: HepB_Dx_Any_everCY;
 PROC SQL inobs=max;
   CREATE TABLE dmlocal.hepb_events_ever AS
-  select patid, eventyear, max(HepB_Dx_Any_everCY ) as HepB_Dx_Any_everCY 
-  from
-(select PE.PATID
+  select distinct PE.PATID
 	, PE.EventYear
-	, case when Dx.ADMIT_DATE IS NOT NULL and year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0  /*new--null exclusion kept*/
+	, case when .<year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0  /*new--null exclusion kept*/
 		end as HepB_Dx_Any_everCY 
 from indata.diagnosis as Dx
 	join infolder.HepB as HB
@@ -845,8 +843,7 @@ from indata.diagnosis as Dx
 		from dmlocal.PatientEvents
 	) as PE
 		on PE.PATID = Dx.PATID
-group by PE.PATID)
-group by PATID, EventYear
+group by PE.PATID
 ;
 RUN;
 QUIT;
@@ -889,11 +886,9 @@ QUIT;
 *new variables added: HepC_Dx_Any_everCY ;
 PROC SQL inobs=max;
   CREATE TABLE dmlocal.hepc_events_ever AS
-  select patid, eventyear, max(HepC_Dx_Any_everCY ) as HepC_Dx_Any_everCY 
-  from
-(select PE.PATID
+  select distinct PE.PATID
 	, PE.EventYear
-	, case when Dx.ADMIT_DATE IS NOT NULL and year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0  /*new--null exclusion kept*/
+	, case when .<year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0  /*new--null exclusion kept*/
 		end as HepC_Dx_Any_everCY 
 from indata.DIAGNOSIS as Dx
 	join infolder.HepC as HC
@@ -905,8 +900,7 @@ from indata.DIAGNOSIS as Dx
 		from dmlocal.PatientEvents
 	) as PE
 		on PE.PATID = Dx.PATID
-group by PE.PATID)
-group by PATID, EventYear
+group by PE.PATID
 ;
 RUN;
 QUIT;
@@ -947,11 +941,9 @@ QUIT;
 *new variables added: HIV_Dx_Any_everCY ;
 PROC SQL inobs=max;
   CREATE TABLE dmlocal.hiv_events_ever AS
-  select patid, eventyear, max(HIV_Dx_Any_everCY ) as HIV_Dx_Any_everCY 
-  from
-(select PE.PATID
+  select distinct PE.PATID
 	, PE.EventYear
-	, case when Dx.ADMIT_DATE IS NOT NULL and year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0
+	, case when .<year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0
 		end as HIV_Dx_Any_everCY  /*new*/
 from indata.DIAGNOSIS as Dx
 	join infolder.HIV as HIV
@@ -963,8 +955,7 @@ from indata.DIAGNOSIS as Dx
 		from dmlocal.PatientEvents
 	) as PE
 		on PE.PATID = Dx.PATID
-group by PE.PATID)
-group by PATID, EventYear
+group by PE.PATID
 ;
 RUN;
 QUIT;
@@ -1228,13 +1219,11 @@ QUIT;
 * Create SAS data file dmlocal.naltrex_events_ever;
 PROC SQL inobs=max;
 CREATE TABLE dmlocal.naltrex_events_ever as
- select patid, eventyear, max(NALTREX_PRESC_everCY) as NALTREX_PRESC_everCY, max(NALTREX_DISP_everCY) as NALTREX_DISP_everCY
- from
-(select PE.PATID
+ select distinct PE.PATID
 	, PE.EventYear
-	, case when PRESC.RX_ORDER_DATE IS NOT NULL and year(min(PRESC.RX_ORDER_DATE)) <= PE.EventYear then 1 else 0 
+	, case when .<year(min(PRESC.RX_ORDER_DATE)) <= PE.EventYear then 1 else 0 
 	  end as NALTREX_PRESC_everCY /*new*/
-	, case when DISP.DISPENSE_DATE IS NOT NULL and year(min(DISP.DISPENSE_DATE)) <= PE.EventYear then 1 else 0 
+	, case when .<year(min(DISP.DISPENSE_DATE)) <= PE.EventYear then 1 else 0 
 	  end as NALTREX_DISP_everCY /*new*/
 from dmlocal.patientevents as PE		/* handle data for missing patients */
 	left join
@@ -1265,8 +1254,7 @@ from dmlocal.patientevents as PE		/* handle data for missing patients */
 		group by PE.PATID, PE.EventYear
 	) as DISP
 		on PE.PATID = DISP.PATID and PE.EventYear = DISP.EventYear
-	GROUP BY PE.PATID)
-	GROUP BY PATID, EventYear
+	GROUP BY PE.PATID
   ;
 RUN;
 QUIT;
@@ -1827,8 +1815,8 @@ QUIT;
 *new variables added:  CHRONIC_OPIOID_everCY;
 PROC SQL inobs=max;
 CREATE TABLE dmlocal.chronic_opioids_ever as
-select patid, eventyear, min(chronic_opioid_date)as min_date
-	, case when calculated min_date is not null and year(calculated min_date)<= EventYear then 1 else 0
+select distinct patid, eventyear, min(chronic_opioid_date)as min_date
+	, case when .< year(calculated min_date)<= EventYear then 1 else 0
 		end as CHRONIC_OPIOID_everCY /*new*/
 from dmlocal.chronic_opioids 
 GROUP BY patid
