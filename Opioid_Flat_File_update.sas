@@ -12,6 +12,7 @@
 3 -- Data provided to Jason
 
 5 --Added enrolled indicator. Code tested for subset data (no issues), but not on full data set yet.
+8/23/19--Fixed bup_presc_evercy and bup_disp_evercy code.
 
 */
 
@@ -1078,13 +1079,11 @@ QUIT;
 * Create SAS data file dmlocal.bup_events_ever;
 PROC SQL inobs=max;
 CREATE TABLE dmlocal.bup_events_ever as
-select patid, eventyear, max(BUP_PRESC_everCY) as BUP_PRESC_everCY, max(BUP_DISP_everCY) as BUP_DISP_everCY
-from
-(select PE.PATID
+select PE.PATID
 	, PE.EventYear
-	, CASE WHEN PRESC.RX_ORDER_DATE IS NOT NULL and year(min(PRESC.RX_ORDER_DATE)) <= PE.EventYear then 1 else 0 
+	, CASE WHEN .<year(min(PRESC.RX_ORDER_DATE)) <= PE.EventYear then 1 else 0 
 	  end as BUP_PRESC_everCY /*new*/
-	, CASE WHEN DISP.DISPENSE_DATE IS NOT NULL and year(min(DISP.DISPENSE_DATE)) <= PE.EventYear then 1 else 0 
+	, CASE WHEN  .<year(min(DISP.DISPENSE_DATE)) <= PE.EventYear then 1 else 0 
 	  end as BUP_DISP_everCY /*new*/
 from dmlocal.patientevents as PE		/* handle data for missing patients */
 	left join
@@ -1115,8 +1114,7 @@ from dmlocal.patientevents as PE		/* handle data for missing patients */
 		group by PE.PATID, PE.EventYear
 	) as DISP
 		on PE.PATID = DISP.PATID and PE.EventYear = DISP.EventYear
-	GROUP BY PE.PATID)
-GROUP BY PATID, EventYear
+	GROUP BY PE.PATID
 	;
 RUN;
 QUIT;
