@@ -16,7 +16,8 @@
 5 --Added enrolled indicator. Code tested for subset data (no issues), but not on full data set yet.
 8/23/19--Fixed bup_presc_evercy and bup_disp_evercy code. Saw similar discrepanies and fixed evercy variables for hepb, hepc, hiv, and naltrex.
 
-8/26/19: Added the carry forward codes for year prior and everCY variables;
+8/26/19: Added the carry forward codes for year prior and everCY variables.
+	Added the codes for creating the tables for the regressions
 */
 
 proc printto log="&DRNOC.Opioid_RCR.log" new; run;
@@ -834,7 +835,7 @@ PROC SQL inobs=max;
   CREATE TABLE dmlocal.hepb_events_ever AS
   select distinct PE.PATID
 	, PE.EventYear
-	, case when .<year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0  /*new--null exclusion kept*/
+	, case when .<year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0  /*new*/
 		end as HepB_Dx_Any_everCY 
 from indata.diagnosis as Dx
 	join infolder.HepB as HB
@@ -891,7 +892,7 @@ PROC SQL inobs=max;
   CREATE TABLE dmlocal.hepc_events_ever AS
   select distinct PE.PATID
 	, PE.EventYear
-	, case when .<year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0  /*new--null exclusion kept*/
+	, case when .<year(min(Dx.ADMIT_DATE)) <= PE.EventYear then 1 else 0  /*new*/
 		end as HepC_Dx_Any_everCY 
 from indata.DIAGNOSIS as Dx
 	join infolder.HepC as HC
@@ -2769,40 +2770,40 @@ label Inhalant_UD_Any_CY='1 if patient is "active" in data in current year and I
 label SedHypAnx_UD_Any_CY='1 if patient is "active" in data in current year and S_HYP_UD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year ';
 label HepB_Dx_Any_CY='1 if patient is "active" in data in current year and HepB diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year ';
 label HepC_Dx_Any_CY='1 if patient is "active" in data in current year and HepC diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year ';
-label CANCER_PROC_FLAG='Cancer Procedure in Year prior (Y/N) ? within 365 days before index anchor ';
+label CANCER_PROC_FLAG='Cancer Procedure in Year prior (Y/N) → within 365 days before index anchor ';
 label MH_Dx_Pri_CY='1 not missing from observable data and match MH value set, 0 if patient is observed that year w/o MH dx';
 label MH_Dx_Exp_CY='Mental health exploratory calendar year';
-label MH_Dx_Pri_Year_Prior='Mental Health Dx Primary in year prior (Y/N) ? 365 days before index anchor ';
+label MH_Dx_Pri_Year_Prior='Mental Health Dx Primary in year prior (Y/N) → 365 days before index anchor ';
 label MH_Dx_Pri_Any_Prior='Mental Health Dx Primary any prior (Y/N) ';
-label MH_Dx_Exp_Year_Prior='Mental Health Dx Exploratory in year prior (Y/N) ? 365 days before index anchor ';
+label MH_Dx_Exp_Year_Prior='Mental Health Dx Exploratory in year prior (Y/N) → 365 days before index anchor ';
 label MH_Dx_Exp_Any_Prior='Mental Health Dx Exploratory any prior to index exposure (Y/N) ';
-label Alcohol_Use_DO_Year_Prior='Alcohol Use Disorder Dx in year prior (Y/N) ? 365 days before index anchor';
+label Alcohol_Use_DO_Year_Prior='Alcohol Use Disorder Dx in year prior (Y/N) → 365 days before index anchor';
 label Alcohol_Use_DO_Any_Prior='Alcohol Use Disorder Dx any prior (Y/N)';
 label Alcohol_Use_DO_Post_Date='First Alcohol Use Disorder Date after IndexDate';
-label Substance_Use_DO_Year_Prior='Substance Use Disorder Year Prior (Y/N) ? 365 days before index anchor';
+label Substance_Use_DO_Year_Prior='Substance Use Disorder Year Prior (Y/N) → 365 days before index anchor';
 label Substance_Use_DO_Any_Prior='Substance Use Disorder Dx any prior (Y/N)';
 label Substance_Use_DO_Post_Date='First Substance Use Disorder Date after IndexDate';
-label Opioid_Use_DO_Year_Prior='Opioid Use Disorder Year Prior (Y/N) ? 365 days before index anchor';
+label Opioid_Use_DO_Year_Prior='Opioid Use Disorder Year Prior (Y/N) → 365 days before index anchor';
 label Opioid_Use_DO_Any_Prior='Opioid Use Disorder Dx any prior (Y/N)';
 label Opioid_Use_DO_Post_date='First Opioid Use Disorder Date after IndexDate';
 label TimeFromIndexOpioidToOUD='Opioid_Use_DO_Post_date - FirstOpioidDate';
 label OUD_Post_Opioid_Exp='OUD_Post_Opioid_Exp';
-label Cannabis_Use_DO_Year_Prior='Cannabis Use Disorder Year Prior (Y/N) ? 365 days before index anchor';
+label Cannabis_Use_DO_Year_Prior='Cannabis Use Disorder Year Prior (Y/N) → 365 days before index anchor';
 label Cannabis_Use_DO_Any_Prior='Cannabis Use Disorder Dx any prior (Y/N)';
 label Cannabis_Use_DO_Post_Date='First Cannabis Use Disorder Date after IndexDate';
-label Cocaine_Use_DO_Year_Prior='Cocaine Use Disorder Year Prior (Y/N) ? 365 days before index anchor';
+label Cocaine_Use_DO_Year_Prior='Cocaine Use Disorder Year Prior (Y/N) → 365 days before index anchor';
 label Cocaine_Use_DO_Any_Prior='Cocaine Use Disorder Dx any prior (Y/N)';
 label Cocaine_Use_DO_Post_Date='First Cocaine Use Disorder Date after IndexDate';
-label Halluc_Use_DO_Year_Prior='Hallucinogen Use Disorder Year Prior (Y/N) ? 365 days before index anchor';
+label Halluc_Use_DO_Year_Prior='Hallucinogen Use Disorder Year Prior (Y/N) → 365 days before index anchor';
 label Halluc_Use_DO_Any_Prior='Hallucinogen Use Disorder Dx any prior (Y/N)';
 label Halluc_Use_DO_Post_Date='First Hallucinogen Use Disorder Date after IndexDate';
-label Inhalant_Use_DO_Year_Prior='Inhalant Use Disorder Year Prior (Y/N) ? 365 days before index anchor';
+label Inhalant_Use_DO_Year_Prior='Inhalant Use Disorder Year Prior (Y/N) → 365 days before index anchor';
 label Inhalant_Use_DO_Any_Prior='Inhalant Use Disorder Dx any prior (Y/N)';
 label Inhalant_Use_DO_Post_Date='First Inhalant Use Disorder Date after IndexDate';
-label Other_Stim_Use_DO_Year_Prior='Other Stimulant Use Disorder Year Prior (Y/N) ? 365 days before index anchor';
+label Other_Stim_Use_DO_Year_Prior='Other Stimulant Use Disorder Year Prior (Y/N) → 365 days before index anchor';
 label Other_Stim_Use_DO_Any_Prior='Other Stimulant Use Disorder Dx any prior (Y/N)';
 label Other_Stim_Use_DO_Post_Date='First Other Stimulant Use Disorder Date after IndexDate';
-label SedHypAnx_Use_DO_Year_Prior='Sedative/Hypnotic/Anxiolytic Use Disorder Year Prior (Y/N) ? 365 days before index anchor';
+label SedHypAnx_Use_DO_Year_Prior='Sedative/Hypnotic/Anxiolytic Use Disorder Year Prior (Y/N) → 365 days before index anchor';
 label SedHypAnx_Use_DO_Any_Prior='Sedative/Hypnotic/Anxiolytic Use Disorder Dx any prior (Y/N)';
 label SedHypAnx_Use_DO_Post_Date='First Sedative/Hypnotic/Anxiolytic Use Disorder Date after IndexDate';
 label Opioid_UD_Any_CY='1 if patient is "active" in data in current year and OUD diagnosis value is observed, 0 if it is not observed, missing if patient is not in data in year ';
@@ -2826,7 +2827,7 @@ label BINARY_RACE='Binary Race (White vs. Non-White)';
 label BINARY_HISPANIC='Binary HISPANIC (HISPANIC vs. OTHER)';
 label DEATH_DATE='Date of death';
 label ZOMBIE_FLAG='Flag for date of death PRIOR to event year index encounter';
-label FATAL_OVERDOSE='Fatal Overdose ? Will only have date of death, cause of death not integrated into PCORI. In addition, will likely only have death as discharge disposition (not external death). Try deceased + OUD DX same date.';
+label FATAL_OVERDOSE='Fatal Overdose → Will only have date of death, cause of death not integrated into PCORI. In addition, will likely only have death as discharge disposition (not external death). Try deceased + OUD DX same date.';
 label DaysToDeath='Time elapsed between opioid exposure & death';
 label DEATH_COMPLETE='Externally available death data at site in curent year?';
 label ED_OD_PRE='Nonfatal accidental Overdose (ED visit administrative code) prior to index exposure';
@@ -2862,7 +2863,7 @@ label HepC_Dx_Post_Date='Hepatitis C Virus any time after index exposure';
 label ANY_STD_Year_Prior='any HIV, HEPB, HEPC, current or prior year';
 label UDS_CPT='Urine Drug Screen by CPT code (Y/N/NA) in the year NA if none of these codes appear in the organization-year.';
 label UDS_LOINC='Urine Drug Screen by LOINC code (Y/N/NA) (LOINC codes were not in the LOINC to include so they will not be in VA Result data which was pulled by LOINC codes, Louisiana thought they did have drug screens in their data) NA if site does not capture LOINC codes of any kind.';
-label UDS_FLAG='Urine Drug Screen (Y/N/NA) ? merged result of CPT and LOINC code variables ';
+label UDS_FLAG='Urine Drug Screen (Y/N/NA) → merged result of CPT and LOINC code variables ';
 label NALOXONE_INFERRED_RESCUE='Naloxone ED Prescription or Dispensing or Admin (Y/N)';
 label NALOXONE_PRESCRIBE_RESCUE='Naloxone Prescription (y/n)';
 label NALOXONE_DISPENSE_RESCUE='Naloxone Dispensation (Y/N)';
@@ -2877,7 +2878,7 @@ label ED_IP_YR='ED or IP visit in current year';
 label ANY_ENC_CY='ANY encoutner current_year (should be 0 if patient is not in the observation period)';
 label BDZ_Presc_3mo='Benzodiazepine Prescription +/- 3 months of IndexDate';
 label BDZ_Disp_3mo='Benzodiazepine Dispensation +/- 3 months of IndexDate';
-label BDZ_3MO='Benzodiazepine Rx OR DISPENSING within 3 months +/- opioid RX date (Y/N) ? the 3 month look-back/look-ahead is not confined to the calendar year';
+label BDZ_3MO='Benzodiazepine Rx OR DISPENSING within 3 months +/- opioid RX date (Y/N) → the 3 month ‘look-back/look-ahead’ is not confined to the calendar year';
 label BUP_PRESC_PRE='Buprenorphine Prescription in 365 days prior to index date (Y/N)';
 label BUP_PRESC_PRE_DATE='Date of last Buprenorphine Prescription in the 365 days prior to index date';
 label BUP_PRESC_POST='Buprenorphine Prescription in 365 days after index date (Y/N)';
@@ -2890,7 +2891,7 @@ label BUP_ANY_CY='Any Buprenorphine RX or DISP in current calendar year';
 label BUP_DISP_CY='Any Buprenorphine DISP in current calendar year';
 label BUP_PRESC_CY='Any Buprenorphine RX in current calendar year';
 label BUP_DISP_everCY='Any Buprenorphine DISP ever in current calendar year';
-label BUP_PRESC_everCY='Any Buprenorphine RX ever in current calendar year';
+label BUP_PRESC_everCY='Any Buprenorphine RX ever in current or prior CY';
 label NALTREX_ANY_CY='ANY Naltrexone RX or DISP in Current year';
 label NALTREX_DISP_CY='ANY Naltrexone DISP in Current year';
 label NALTREX_PRESC_CY='ANY Naltrexone RX in Current year';
@@ -2946,5 +2947,80 @@ proc sql;
 quit;
 
 	
+*********************************************************************************************************************************************;
+*create tables to be used for regressions, based on Daniella's most recent updated spreadsheet 8/26/19;
+
+*regression tables with guideline b inclusions;
+%macro reg(dep, dat);
+proc sql;
+	create table test_1 as
+	select distinct * from
+	(select *
+	from dmlocal.opioid_flat_file
+	where &dep=1 and GL_B_DENOM_FOR_ST=1)
+	group by patid  
+	having eventyear=min(eventyear);
+
+	create table test_0 as
+	select distinct * from
+	(select *
+	from dmlocal.opioid_flat_file
+	where &dep=0 and GL_B_DENOM_FOR_ST=1 and patid not in (select patid from test_1))
+	group by patid  
+	having eventyear=max(eventyear);
+
+	create table dmlocal.&dat as
+	select * from
+	(select * from test_1
+	union
+	select * from test_0)
+	order by patid;
+quit;
+%mend reg;
+%reg(opioid_use_do_any_prior, reg1a);
+%reg(substance_ud_any_evercy, reg1b);
+%reg(alcohol_ud_any_evercy, reg1c);
+%reg(opioid_flag, reg2b);
+
+*table for regression 2a;
+proc sql;
+	create table dmlocal.reg2a as
+	select *
+	from dmlocal.opioid_flat_file
+	where GL_B_DENOM_FOR_ST=1;
+quit;
+
+*regression tables without inclusions/exclusions;
+%macro reg2(dep, dat);
+proc sql;
+	create table test_1 as
+	select distinct * from
+	(select *
+	from dmlocal.opioid_flat_file
+	where &dep=1)
+	group by patid  
+	having eventyear=min(eventyear);
+
+	create table test_0 as
+	select distinct * from
+	(select *
+	from dmlocal.opioid_flat_file
+	where &dep=0 and patid not in (select patid from test_1))
+	group by patid  
+	having eventyear=max(eventyear);
+
+	create table dmlocal.&dat as
+	select * from
+	(select * from test_1
+	union
+	select * from test_0)
+	order by patid;
+quit;
+%mend reg2;
+%reg2(opioid_flag, reg3);
+%reg2(chronic_opioid, reg5);
+%reg2(od_post, reg8);
+%reg2(fatal_overdose, reg9);
+%reg2(smoking, reg10);
 	
 	
