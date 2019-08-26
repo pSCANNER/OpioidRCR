@@ -4,6 +4,7 @@
 3 -- PROVIDE JASON OPIOID RX DATES AND AESOPS VARIABLES TO CASE CHECK DATE SEQUENCE FOR 3 PATIENTS FOR AESOPS VARIABLES, ONE WITHOUT 728 AND TWO WITH. 
 4 -- CHECK AND UPDATE ALL VALUE SETS FOR OPIOIDS AND NALOXONE (NALOXONE LOOKS SUSPICIOUSLY LOW)
      (MC: 7242 appears a lot in CDM RXNORM_CUI for Naloxone and does not appear to be in code list)
+     Daniella, let me (Caron) know what I need to do regarding this.
 */
 
 /* DONE 
@@ -15,6 +16,7 @@
 5 --Added enrolled indicator. Code tested for subset data (no issues), but not on full data set yet.
 8/23/19--Fixed bup_presc_evercy and bup_disp_evercy code. Saw similar discrepanies and fixed evercy variables for hepb, hepc, hiv, and naltrex.
 
+8/26/19: Added the carry forward codes for year prior and everCY variables;
 */
 
 proc printto log="&DRNOC.Opioid_RCR.log" new; run;
@@ -2340,28 +2342,265 @@ proc sql;
 quit;
 
 
+*carry forward once for YEAR_PRIOR variables;
+%macro carry(var, table);
+      data &table; 
+      set dmlocal.opioid_flat_file_pre2;
+      by patid;
+            set dmlocal.opioid_flat_file_pre2 (firstobs=2 keep=&var rename=(&var=new))
+      dmlocal.opioid_flat_file_pre2 (obs=1 drop=_all_);
+      new=ifn(last.patid,(.), new);
+      if &var ne . then new=&var;
+      else if &var=. then &var=new;
+run;
+%mend carry;
+%carry(ANY_STD_Year_Prior, t1);
+%carry(Alcohol_Use_DO_Year_Prior, t2);
+%carry(Cancer_AnyEnc_Dx_Year_Prior, t3);
+%carry(Cancer_Inpt_Dx_Year_Prior, t4); 
+%carry(Cannabis_Use_DO_Year_Prior, t5); 
+%carry(Chemo_AnyEncount_Year_Prior, t6); 
+%carry(Cocaine_Use_DO_Year_Prior, t7); 
+%carry(HIV_Dx_Year_Prior, t8); 
+%carry(Halluc_Use_DO_Year_Prior, t9); 
+%carry(HepB_Dx_Year_Prior, t10); 
+%carry(HepC_Dx_Year_Prior, t11); 
+%carry(Inhalant_Use_DO_Year_Prior, t12); 
+%carry(MH_Dx_Exp_Year_Prior, t13); 
+%carry(MH_Dx_Pri_Year_Prior, t14); 
+%carry(Opioid_Use_DO_Year_Prior, t15); 
+%carry(Other_Stim_Use_DO_Year_Prior, t16); 
+%carry(Rad_AnyEncount_Year_Prior, t17); 
+%carry(SedHypAnx_Use_DO_Year_Prior, t18); 
+%carry(Substance_Use_DO_Year_Prior, t19); 
+%carry(OpioidInYearPrior, t20); 
+
+proc sql;
+      create table opioid_flat_file_pre2a as 
+      select a.*, b.ANY_STD_Year_Prior, c.Alcohol_Use_DO_Year_Prior, d.Cancer_AnyEnc_Dx_Year_Prior, e.Cancer_Inpt_Dx_Year_Prior, f.Cannabis_Use_DO_Year_Prior,
+            g.Chemo_AnyEncount_Year_Prior, h.Cocaine_Use_DO_Year_Prior, i.HIV_Dx_Year_Prior, j.Halluc_Use_DO_Year_Prior, k.HepB_Dx_Year_Prior, l.HepC_Dx_Year_Prior,
+            m.Inhalant_Use_DO_Year_Prior, n.MH_Dx_Exp_Year_Prior, o.MH_Dx_Pri_Year_Prior, p.Opioid_Use_DO_Year_Prior, q.Other_Stim_Use_DO_Year_Prior, r.Rad_AnyEncount_Year_Prior,
+            s.SedHypAnx_Use_DO_Year_Prior, t.Substance_Use_DO_Year_Prior, u.OpioidInYearPrior
+      from dmlocal.opioid_flat_file_pre2 (drop = ANY_STD_Year_Prior Alcohol_Use_DO_Year_Prior Cancer_AnyEnc_Dx_Year_Prior Cancer_Inpt_Dx_Year_Prior Cannabis_Use_DO_Year_Prior 
+            Chemo_AnyEncount_Year_Prior Cocaine_Use_DO_Year_Prior HIV_Dx_Year_Prior Halluc_Use_DO_Year_Prior HepB_Dx_Year_Prior HepC_Dx_Year_Prior
+            Inhalant_Use_DO_Year_Prior MH_Dx_Exp_Year_Prior MH_Dx_Pri_Year_Prior Opioid_Use_DO_Year_Prior Other_Stim_Use_DO_Year_Prior Rad_AnyEncount_Year_Prior
+            SedHypAnx_Use_DO_Year_Prior Substance_Use_DO_Year_Prior OpioidInYearPrior) a
+      left join 
+            (select * from t1) b
+            on a.patid=b.patid and a.eventyear=b.eventyear
+      left join 
+            (select * from t2) c
+            on a.patid=c.patid and a.eventyear=c.eventyear
+      left join 
+            (select * from t3) d
+            on a.patid=d.patid and a.eventyear=d.eventyear
+      left join 
+            (select * from t4) e
+            on a.patid=e.patid and a.eventyear=e.eventyear
+      left join 
+            (select * from t5) f
+            on a.patid=f.patid and a.eventyear=f.eventyear
+      left join 
+            (select * from t6) g
+            on a.patid=g.patid and a.eventyear=g.eventyear
+      left join 
+            (select * from t7) h
+            on a.patid=h.patid and a.eventyear=h.eventyear
+      left join 
+            (select * from t8) i
+            on a.patid=i.patid and a.eventyear=i.eventyear
+      left join 
+            (select * from t9) j
+            on a.patid=j.patid and a.eventyear=j.eventyear
+      left join 
+            (select * from t10) k
+            on a.patid=k.patid and a.eventyear=k.eventyear
+      left join 
+            (select * from t11) l
+            on a.patid=l.patid and a.eventyear=l.eventyear
+      left join 
+            (select * from t12) m
+            on a.patid=m.patid and a.eventyear=m.eventyear
+      left join 
+            (select * from t13) n
+            on a.patid=n.patid and a.eventyear=n.eventyear
+      left join 
+            (select * from t14) o 
+            on a.patid=o.patid and a.eventyear=o.eventyear
+      left join 
+            (select * from t15) p
+            on a.patid=p.patid and a.eventyear=p.eventyear
+      left join 
+            (select * from t16) q
+            on a.patid=q.patid and a.eventyear=q.eventyear
+      left join 
+            (select * from t17) r
+            on a.patid=r.patid and a.eventyear=r.eventyear
+      left join 
+            (select * from t18) s 
+            on a.patid=s.patid and a.eventyear=s.eventyear
+      left join 
+            (select * from t19) t 
+            on a.patid=t.patid and a.eventyear=t.eventyear
+      left join 
+            (select * from t20) u 
+            on a.patid=u.patid and a.eventyear=u.eventyear;
+quit;
+
+
+
 *Daniella's code for re-coding for facility code, will merge in state data below;
 * Carry forward missing 3-digit location--only for years within enrollment;
+* Carry forward everyCY and Any_prior variables within enrollment;
+data dmlocal.opioid_flat_file_pre3;
+      set opioid_flat_file_pre2a;
+      by patid;
+      /* RETAIN the new carryforward variable */
+      retain temp; 
+      /* Reset TEMP when the BY-Group changes */
+      if first.patid then temp=.;
+      /* Assign TEMP when z3 is non-missing */
+      if facility_location ne . then temp=facility_location;
+      /* When X is missing, assign the retained value of TEMP into X */
+      else if facility_location=. then facility_location=temp;
 
-/* NOTE THAT DATA MUST BE SORTED BY PATIENT AND DATE FOR THIS TO WORK
-MAKING IT EXPLICIT HERE SO WE DON'T RELY ON SQL ORDER BY ABOVE */
-proc sort data=dmlocal.opioid_flat_file_pre3;
-   by patid EVENTYEAR;
+      retain temp2; 
+      if first.patid then temp2=.;
+      if BUP_DISP_everCY ne . then temp2=BUP_DISP_everCY;
+      else if BUP_DISP_everCY=. then BUP_DISP_everCY=temp2;
+
+      retain temp3; 
+      if first.patid then temp3=.;
+      if BUP_PRESC_everCY ne . then temp3=BUP_PRESC_everCY;
+      else if BUP_PRESC_everCY=. then BUP_PRESC_everCY=temp3;
+
+      retain temp4; 
+      if first.patid then temp4=.;
+      if CHRONIC_OPIOID_everCY ne . then temp4=CHRONIC_OPIOID_everCY;
+      else if CHRONIC_OPIOID_everCY=. then CHRONIC_OPIOID_everCY=temp4;
+
+      retain temp5; 
+      if first.patid then temp5=.;
+      if HIV_Dx_Any_everCY ne . then temp5=HIV_Dx_Any_everCY;
+      else if HIV_Dx_Any_everCY=. then HIV_Dx_Any_everCY=temp5;
+
+      retain temp6; 
+      if first.patid then temp6=.;
+      if HIV_HBV_HBC_everCY ne . then temp6=HIV_HBV_HBC_everCY;
+      else if HIV_HBV_HBC_everCY=. then HIV_HBV_HBC_everCY=temp6;
+
+      retain temp7; 
+      if first.patid then temp7=.;
+      if HepB_Dx_Any_everCY ne . then temp7=HepB_Dx_Any_everCY;
+      else if HepB_Dx_Any_everCY=. then HepB_Dx_Any_everCY=temp7;
+
+      retain temp8; 
+      if first.patid then temp8=.;
+      if HepC_Dx_Any_everCY ne . then temp8=HepC_Dx_Any_everCY;
+      else if HepC_Dx_Any_everCY=. then HepC_Dx_Any_everCY=temp8;
+
+      retain temp9; 
+      if first.patid then temp9=.;
+      if MAT_ANY_everCY ne . then temp9=MAT_ANY_everCY;
+      else if MAT_ANY_everCY=. then MAT_ANY_everCY=temp9;
+
+      retain temp10; 
+      if first.patid then temp10=.;
+      if NALTREX_DISP_everCY ne . then temp10=NALTREX_DISP_everCY;
+      else if NALTREX_DISP_everCY=. then NALTREX_DISP_everCY=temp10;
+
+      retain temp11; 
+      if first.patid then temp11=.;
+      if NALTREX_PRESC_everCY ne . then temp11=NALTREX_PRESC_everCY;
+      else if NALTREX_PRESC_everCY=. then NALTREX_PRESC_everCY=temp11;
+
+      retain temp12; 
+      if first.patid then temp12=.;
+      if OUD_SUD_everCY ne . then temp12=OUD_SUD_everCY;
+      else if OUD_SUD_everCY=. then OUD_SUD_everCY=temp12;
+
+      retain temp13; 
+      if first.patid then temp13=.;
+      if Opioid_UD_Any_everCY ne . then temp13=Opioid_UD_Any_everCY;
+      else if Opioid_UD_Any_everCY=. then Opioid_UD_Any_everCY=temp13;
+
+      retain temp14; 
+      if first.patid then temp14=.;
+      if Substance_UD_Any_everCY ne . then temp14=Substance_UD_Any_everCY;
+      else if Substance_UD_Any_everCY=. then Substance_UD_Any_everCY=temp14;
+
+      retain temp15; 
+      if first.patid then temp15=.;
+      if Alcohol_Use_DO_Any_Prior ne . then temp15=Alcohol_Use_DO_Any_Prior;
+      else if Alcohol_Use_DO_Any_Prior=. then Alcohol_Use_DO_Any_Prior=temp15;
+
+      retain temp16; 
+      if first.patid then temp16=.;
+      if Cannabis_Use_DO_Any_Prior ne . then temp16=Cannabis_Use_DO_Any_Prior;
+      else if Cannabis_Use_DO_Any_Prior=. then Cannabis_Use_DO_Any_Prior=temp16;
+
+      retain temp17; 
+      if first.patid then temp17=.;
+      if Cocaine_Use_DO_Any_Prior ne . then temp17=Cocaine_Use_DO_Any_Prior;
+      else if Cocaine_Use_DO_Any_Prior=. then Cocaine_Use_DO_Any_Prior=temp17;
+
+      retain temp18; 
+      if first.patid then temp18=.;
+      if HIV_Dx_Any_Prior ne . then temp18=HIV_Dx_Any_Prior;
+      else if HIV_Dx_Any_Prior=. then HIV_Dx_Any_Prior=temp18;
+
+      retain temp19; 
+      if first.patid then temp19=.;
+      if Halluc_Use_DO_Any_Prior ne . then temp19=Halluc_Use_DO_Any_Prior;
+      else if Halluc_Use_DO_Any_Prior=. then Halluc_Use_DO_Any_Prior=temp19;
+
+      retain temp20; 
+      if first.patid then temp20=.;
+      if HepB_Dx_Any_Prior ne . then temp20=HepB_Dx_Any_Prior;
+      else if HepB_Dx_Any_Prior=. then HepB_Dx_Any_Prior=temp20;
+
+      retain temp21; 
+      if first.patid then temp21=.;
+      if HepC_Dx_Any_Prior ne . then temp21=HepC_Dx_Any_Prior;
+      else if HepC_Dx_Any_Prior=. then HepC_Dx_Any_Prior=temp21;
+
+      retain temp22; 
+      if first.patid then temp22=.;
+      if Inhalant_Use_DO_Any_Prior ne . then temp22=Inhalant_Use_DO_Any_Prior;
+      else if Inhalant_Use_DO_Any_Prior=. then Inhalant_Use_DO_Any_Prior=temp22;
+
+      retain temp23; 
+      if first.patid then temp23=.;
+      if MH_Dx_Exp_Any_Prior ne . then temp23=MH_Dx_Exp_Any_Prior;
+      else if MH_Dx_Exp_Any_Prior=. then MH_Dx_Exp_Any_Prior=temp23;
+
+      retain temp24; 
+      if first.patid then temp24=.;
+      if MH_Dx_Pri_Any_Prior ne . then temp24=MH_Dx_Pri_Any_Prior;
+      else if MH_Dx_Pri_Any_Prior=. then MH_Dx_Pri_Any_Prior=temp24;
+
+      retain temp25; 
+      if first.patid then temp25=.;
+      if Opioid_Use_DO_Any_Prior ne . then temp25=Opioid_Use_DO_Any_Prior;
+      else if Opioid_Use_DO_Any_Prior=. then Opioid_Use_DO_Any_Prior=temp25;
+
+      retain temp26; 
+      if first.patid then temp26=.;
+      if Other_Stim_Use_DO_Any_Prior ne . then temp26=Other_Stim_Use_DO_Any_Prior;
+      else if Other_Stim_Use_DO_Any_Prior=. then Other_Stim_Use_DO_Any_Prior=temp26;
+
+      retain temp27; 
+      if first.patid then temp27=.;
+      if SedHypAnx_Use_DO_Any_Prior ne . then temp27=SedHypAnx_Use_DO_Any_Prior;
+      else if SedHypAnx_Use_DO_Any_Prior=. then SedHypAnx_Use_DO_Any_Prior=temp27;
+
+      retain temp28; 
+      if first.patid then temp28=.;
+      if Substance_Use_DO_Any_Prior ne . then temp28=Substance_Use_DO_Any_Prior;
+      else if Substance_Use_DO_Any_Prior=. then Substance_Use_DO_Any_Prior=temp28;
+      drop temp temp2 temp3 temp4 temp5 temp6 temp7 temp8 temp9 temp10 temp11 temp12 temp13 temp14 temp15 temp16 temp17 temp18 temp19 temp20 temp21 temp22 temp23 temp24 temp25 temp26 temp27 temp28;
 run;
 
-data dmlocal.opioid_flat_file_pre3(sortedby=patid eventyear)
-	drop temp;
-	set dmlocal.opioid_flat_file_pre2;
-	by patid;
-	/* RETAIN the new carryforward variable */
-  	retain temp; 
-	/* Reset TEMP when the BY-Group changes */
-  	if first.patid then temp=.;
-	/* Assign TEMP when z3 is non-missing */
-  	if facility_location ne . then temp=facility_location;
-	/* When X is missing, assign the retained value of TEMP into X */
-  	else if facility_location=. then facility_location=temp;
-run;
 
 *replace missing with 0 for binary variables;
 data dmlocal.opioid_flat_file_pre4;
