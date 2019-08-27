@@ -5,7 +5,8 @@
 4 -- CHECK AND UPDATE ALL VALUE SETS FOR OPIOIDS AND NALOXONE (NALOXONE LOOKS SUSPICIOUSLY LOW)
      (MC: 7242 appears a lot in CDM RXNORM_CUI for Naloxone and does not appear to be in code list)
      Daniella, let me (Caron) know what I need to do regarding this.
-	
+5 -- MC: for line 223 (Create SAS data file dmlocal.opioid_year_prior). Please confirm that the referenced prescribing file is the opioid ref file. 
+	Should it be prescribing_select?
      */
 
 /* DONE 
