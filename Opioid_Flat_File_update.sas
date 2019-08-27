@@ -20,6 +20,8 @@
 
 8/26/19: Added the carry forward codes for year prior and everCY variables.
 	Added the codes for creating the tables for the regressions
+	
+8/27/19: Enc_type="EI" also added in the code for cancer_dx_events and cancer_dx_events_cy tables.
 */
 
 proc printto log="&DRNOC.Opioid_RCR.log" new; run;
@@ -335,7 +337,7 @@ select PE.PATID
 	, PE.EventYear
 	, max(case when Ca.Code is not NULL then 1 else 0 end)
 		as Cancer_AnyEncount_Dx_Year_Prior
-	, max(case when Ca.Code is not NULL and E.ENC_TYPE = 'IP' 
+	, max(case when Ca.Code is not NULL and E.ENC_TYPE in  ('IP','EI') 
 		and Dx.ADMIT_DATE >= E.ADMIT_DATE
 		and Dx.ADMIT_DATE <= coalesce(E.DISCHARGE_DATE, E.ADMIT_DATE) then 1 else 0 end)
 		as Cancer_Inpt_Dx_Year_Prior
@@ -365,7 +367,7 @@ select PE.PATID
 	, PE.EventYear
 	, max(case when Ca.Code is not NULL then 1 else 0 end)
 		as Cancer_AnyEncount_CY
-	, max(case when Ca.Code is not NULL and E.ENC_TYPE = 'IP' 
+	, max(case when Ca.Code is not NULL and E.ENC_TYPE in  ('IP','EI') 
 		and Dx.ADMIT_DATE >= E.ADMIT_DATE
 		and Dx.ADMIT_DATE <= coalesce(E.DISCHARGE_DATE, E.ADMIT_DATE) then 1 else 0 end)
 		as Cancer_Inpt_Dx_CY
