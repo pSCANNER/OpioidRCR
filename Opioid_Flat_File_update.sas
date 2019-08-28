@@ -22,6 +22,8 @@
 	Added the codes for creating the tables for the regressions
 	
 8/27/19: Enc_type="EI" also added in the code for cancer_dx_events and cancer_dx_events_cy tables.
+
+8/28/19: Added sub_chronic variable.
 */
 
 proc printto log="&DRNOC.Opioid_RCR.log" new; run;
@@ -1932,7 +1934,7 @@ data dmlocal.aesop6;
 		else trans2=trans;
 run;
 /**new variables added:  OPIOID_chronic_90D, OPIOID_naive_90D_0, OPIOID_naive_90D_1, OPIOID_naive_90D_2, OPIOID_naive_90D_3, OPIOID_naive_90D_4,
-	OPIOID_TRANS_180D_0, OPIOID_TRANS_180D_1, OPIOID_TRANS_180D_2, OPIOID_TRANS_180D_3, OPIOID_TRANS_180D_4;*/
+	OPIOID_TRANS_180D_0, OPIOID_TRANS_180D_1, OPIOID_TRANS_180D_2, OPIOID_TRANS_180D_3, OPIOID_TRANS_180D_4, sub_chronic;*/
 proc sql;
 	create table dmlocal.aesop7 as
 	select patid, eventyear, max(chronic) as OPIOID_chronic_90D, sum(naive2) as OPIOID_naive_90D_ct, sum(trans2) as OPIOID_TRANS_180D_ct, 
@@ -1945,7 +1947,8 @@ proc sql;
 		case when calculated OPIOID_TRANS_180D_ct=1 then 1 else 0 end as OPIOID_TRANS_180D_1,
 		case when calculated OPIOID_TRANS_180D_ct=2 then 1 else 0 end as OPIOID_TRANS_180D_2,
 		case when calculated OPIOID_TRANS_180D_ct=3 then 1 else 0 end as OPIOID_TRANS_180D_3,
-		case when calculated OPIOID_TRANS_180D_ct>=4 then 1 else 0 end as OPIOID_TRANS_180D_4
+		case when calculated OPIOID_TRANS_180D_ct>=4 then 1 else 0 end as OPIOID_TRANS_180D_4,
+		case when sum(chronic)=0 and sum(last728)>0 then 1 else 0 end as sub_chronic
 	from dmlocal.aesop6
 	group by patid, eventyear;
 quit;
@@ -2703,6 +2706,7 @@ proc sql;
 	, aesop.OPIOID_TRANS_180D_3 /*new*/
 	, aesop.OPIOID_TRANS_180D_4 /*new*/
 	, aesop.first_ever_op_chron_90d /*new*/
+	, aesop.sub_chronic /*new*/
 	from dmlocal.opioid_flat_file_pre5(drop=datamartid) as a
 	left join 
 	(select * from dmlocal.opioid_flat_file_pre3) as b
@@ -2757,6 +2761,7 @@ label OPIOID_TRANS_180D_3='Intended to capture naive patients that get a second 
 label OPIOID_TRANS_180D_4='Intended to capture naive patients that get a second prescription, putting them at risk for chronic use. Any interval between prescriptions less than 90 days. EXCLUDING patients that have been previously labled as chronic in last 728 days, including this prescription. If count is >=4.';
 label OPIOID_CHRONIC_90D='Opioid_Prescription = Y AND Opioid prescription with a start date > 1 day (from Opioid_Prescription Date) and next 2 previous intervals are < 91 days';
 label FIRST_EVER_OP_CHRON_90D='First lifetime Opioid_Chronic_90D (1 in first year, 0 otherwise)';
+label sub_chronic='If patient had a Rx for eventyear, was not OPIOID_CHRONIC_90D, and was previously OPIOID_CHRONIC_90D in last 728 days';
 label DISPENSE_DATE='Dispense date';
 label Opioid_Dispensation='Two or more opioid prescriptions with two different start dates both > 1 day and < 91 days';
 label OPIOID_FLAG='Opioid Prescription or Dispensation (Y/N)';
